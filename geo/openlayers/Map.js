@@ -39,7 +39,10 @@ define(["dojo/_base/kernel",
 		YAHOO : "Yahoo",
 		//	ARCGIS: String
 		//		The ESRI ARCGis base layer selector.
-		ARCGIS : "ArcGIS"
+		ARCGIS : "ArcGIS",
+                //      CloudMade String
+                //              THe CloudMade base layer selector.
+                CLOUDMADE : "CloudMade"
 	};
 
 	var gom = dojo.getObject("geo.openlayers", true, dojox);
@@ -341,8 +344,12 @@ define(["dojo/_base/kernel",
 					base = new layerArg(name, {
 						olLayer : new OpenLayers.Layer.ArcGIS93Rest(name, url, options, {})
 					});
-
 				break;
+                                case dojox.geo.openlayers.BaseLayerType.CLOUDMADE: 
+                                        base = new layerArg(name, {
+                                                olLayer : new OpenLayers.Layer.CloudMade(name, options)
+                                        });
+                                break;
 			}
 
 			if (base == null) {

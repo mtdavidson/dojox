@@ -1,62 +1,72 @@
-define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/_base/array","dojo/_base/html", "./_ItemBase"],
-	function(dojo, declare, darray, dhtml, ItemBase){
+define([
+	"dojo/_base/declare",
+	"dojo/_base/window",
+	"dojo/dom-class",
+	"dojo/dom-construct",
+	"dojo/dom-style",
+	"./common",
+	"./_ItemBase"
+], function(declare, win, domClass, domConstruct, domStyle, common, ItemBase){
 	// module:
 	//		dojox/mobile/ToolBarButton
 	// summary:
 	//		TODOC
 
-	return dojo.declare("dojox.mobile.ToolBarButton", dojox.mobile._ItemBase, {
+	/*=====
+		ItemBase = dojox.mobile._ItemBase;
+	=====*/
+	return declare("dojox.mobile.ToolBarButton", ItemBase, {
 		selected: false,
 		btnClass: "",
 		_defaultColor: "mblColorDefault",
 		_selColor: "mblColorDefaultSel",
 
 		buildRendering: function(){
-			this.domNode = this.containerNode = this.srcNodeRef || dojo.doc.createElement("div");
+			this.domNode = this.containerNode = this.srcNodeRef || win.doc.createElement("div");
 			this.inheritParams();
-			dojo.addClass(this.domNode, "mblToolbarButton mblArrowButtonText");
+			domClass.add(this.domNode, "mblToolbarButton mblArrowButtonText");
 			var color;
 			if(this.selected){
 				color = this._selColor;
 			}else if(this.domNode.className.indexOf("mblColor") == -1){
 				color = this._defaultColor;
 			}
-			dojo.addClass(this.domNode, color);
+			domClass.add(this.domNode, color);
 	
 			if(!this.label){
 				this.label = this.domNode.innerHTML;
 			}
-			this.domNode.innerHTML = this._cv(this.label);
+			this.domNode.innerHTML = this._cv ? this._cv(this.label) : this.label;
 	
 			if(this.icon && this.icon != "none"){
 				var img;
 				if(this.iconPos){
-					var iconDiv = dojo.create("DIV", null, this.domNode);
-					img = dojo.create("IMG", null, iconDiv);
+					var iconDiv = domConstruct.create("DIV", null, this.domNode);
+					img = domConstruct.create("IMG", null, iconDiv);
 					img.style.position = "absolute";
 					var arr = this.iconPos.split(/[ ,]/);
-					dojo.style(iconDiv, {
+					domStyle.set(iconDiv, {
 						position: "relative",
 						width: arr[2] + "px",
 						height: arr[3] + "px"
 					});
 				}else{
-					img = dojo.create("IMG", null, this.domNode);
+					img = domConstruct.create("IMG", null, this.domNode);
 				}
 				img.src = this.icon;
 				img.alt = this.alt;
-				dojox.mobile.setupIcon(img, this.iconPos);
+				common.setupIcon(img, this.iconPos);
 				this.iconNode = img;
 			}else{
-				if(dojox.mobile.createDomButton(this.domNode)){
-					dojo.addClass(this.domNode, "mblToolbarButtonDomButton");
+				if(common.createDomButton(this.domNode)){
+					domClass.add(this.domNode, "mblToolbarButtonDomButton");
 				}
 			}
 			this.connect(this.domNode, "onclick", "onClick");
 		},
 	
 		select: function(){
-			dojo.toggleClass(this.domNode, this._selColor, !arguments[0]);
+			domClass.toggle(this.domNode, this._selColor, !arguments[0]);
 			this.selected = !arguments[0];
 		},
 		
@@ -72,11 +82,11 @@ define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/_base/array","dojo/_bas
 		_setBtnClassAttr: function(/*String*/btnClass){
 			var node = this.domNode;
 			if(node.className.match(/(mblDomButton\w+)/)){
-				dojo.removeClass(node, RegExp.$1);
+				domClass.remove(node, RegExp.$1);
 			}
-			dojo.addClass(node, btnClass);
-			if(dojox.mobile.createDomButton(this.domNode)){
-				dojo.addClass(this.domNode, "mblToolbarButtonDomButton");
+			domClass.add(node, btnClass);
+			if(common.createDomButton(this.domNode)){
+				domClass.add(this.domNode, "mblToolbarButtonDomButton");
 			}
 		}
 	});

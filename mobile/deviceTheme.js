@@ -1,5 +1,17 @@
-define(["dojo/_base/kernel", "dojo/_base/array", "dojo/dom-construct", "dojo/_base/window", "./_base"],
-	function(dojo, darray, domConstruct, dwindow, mbase){
+define([
+	"dojo/_base/array",
+	"dojo/_base/config",
+	"dojo/_base/lang",
+	"dojo/_base/window",
+	"dojo/dom-construct",
+	"require"
+], function(array, config, lang, win, domConstruct, require){
+
+	var dm = lang.getObject("dojox.mobile", true);
+	/*=====
+	dm = dojox.mobile
+	=====*/
+
 	// module:
 	//		dojox/mobile/deviceTheme
 	// summary:
@@ -51,15 +63,15 @@ define(["dojo/_base/kernel", "dojo/_base/array", "dojo/dom-construct", "dojo/_ba
 	//	|	dojox/mobile/themes/iphone/iphone.css
 	//	|	com/acme/themes/iphone/MyWidget.css
 
-	dojox.mobile.loadCssFile = function(/*String*/file){
-		dojo.create("LINK", {
+	dm.loadCssFile = function(/*String*/file){
+		domConstruct.create("LINK", {
 			href: file,
 			type: "text/css",
 			rel: "stylesheet"
-		}, dojo.doc.getElementsByTagName('head')[0]);
+		}, win.doc.getElementsByTagName('head')[0]);
 	};
 
-	dojox.mobile.themeMap = dojox.mobile.themeMap || [
+	dm.themeMap = dm.themeMap || [
 		// summary:
 		//		A map of user-agents to theme files.
 		// description:
@@ -85,7 +97,7 @@ define(["dojo/_base/kernel", "dojo/_base/array", "dojo/dom-construct", "dojo/_ba
 		[
 			"iPad",
 			"iphone",
-			[dojo.moduleUrl("dojox.mobile", "themes/iphone/ipad.css")]
+			[require.toUrl("dojox/mobile/themes/iphone/ipad.css")]
 		],
 		[
 			"Custom",
@@ -99,35 +111,35 @@ define(["dojo/_base/kernel", "dojo/_base/array", "dojo/dom-construct", "dojo/_ba
 		]
 	];
 
-	dojox.mobile.loadDeviceTheme = function(){
-		var t = dojo.config["mblThemeFiles"] || dojox.mobile.themeFiles || ["@theme"];
-		if(!dojo.isArray(t)){ console.log("loadDeviceTheme: array is expected but found: "+t); }
+	dm.loadDeviceTheme = function(){
+		var t = config["mblThemeFiles"] || dm.themeFiles || ["@theme"];
+		if(!lang.isArray(t)){ console.log("loadDeviceTheme: array is expected but found: "+t); }
 		var i, j;
-		var m = dojox.mobile.themeMap;
+		var m = dm.themeMap;
 		var ua = (location.search.match(/theme=(\w+)/)) ? RegExp.$1 : navigator.userAgent;
 		for(i = 0; i < m.length; i++){
 			if(ua.match(new RegExp(m[i][0]))){
 				var theme = m[i][1];
 				var files = m[i][2];
 				for(j = t.length - 1; j >= 0; j--){
-					var pkg = dojo.isArray(t[j]) ? t[j][0] : "dojox.mobile";
-					var name = dojo.isArray(t[j]) ? t[j][1] : t[j];
+					var pkg = lang.isArray(t[j]) ? (t[j][0]||"").replace(/\./g, '/') : "dojox/mobile";
+					var name = lang.isArray(t[j]) ? t[j][1] : t[j];
 					var f = "themes/" + theme + "/" +
 						(name === "@theme" ? theme : name) + ".css";
-					files.unshift(dojo.moduleUrl(pkg, f));
+					files.unshift(require.toUrl(pkg+"/"+f));
 				}
 				for(j = 0; j < files.length; j++){
-					dojox.mobile.loadCssFile(files[j].toString());
+					dm.loadCssFile(files[j].toString());
 				}
 				break;
 			}
 		}
 	};
 	
-	if(dojox.mobile.configDeviceTheme){
-		dojox.mobile.configDeviceTheme();
+	if(dm.configDeviceTheme){
+		dm.configDeviceTheme();
 	}
-	dojox.mobile.loadDeviceTheme();
+	dm.loadDeviceTheme();
 
-	return dojox.mobile.deviceTheme;
+	return dm;
 });

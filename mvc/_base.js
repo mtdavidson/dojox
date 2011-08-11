@@ -5,15 +5,15 @@ define([
 	"./Bind",
 	"./_DataBindingMixin",
 	"./_patches"
-], function(dojo, lang, StatefulModel){
+], function(kernel, lang, StatefulModel){
 	// module:
 	//		dojox/mvc/_base
 	// summary:
 	//		Pulls in essential MVC dependencies such as basic support for
 	//		data binds, a data model and data binding mixin for dijits.
-	dojo.experimental("dojox.mvc");
+	kernel.experimental("dojox.mvc");
 
-	var mvc = dojo.getObject("dojox.mvc", true);
+	var mvc = lang.getObject("dojox.mvc", true);
 	/*=====
 		mvc = dojox.mvc;
 	=====*/
@@ -43,7 +43,7 @@ define([
 		//			  Promise
 		if(args.data){
 			return new StatefulModel({ data : args.data });
-		}else if(args.store && typeof lang.isFunction(args.store.query)){
+		}else if(args.store && lang.isFunction(args.store.query)){
 			var model;
 			var result = args.store.query(args.query);
 			if(result.then){

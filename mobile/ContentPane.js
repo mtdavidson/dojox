@@ -1,5 +1,14 @@
-define(["dojo/_base/kernel", "dojo/_base/declare", "dijit/_WidgetBase", "dijit/_Container", "dijit/_Contained", "dojo/_base/xhr","./ProgressIndicator"],
-	function(dojo, declare, WidgetBase, Container, Contained, xhr, ProgressIndicator) {
+define([
+	"dojo/_base/kernel",
+	"dojo/_base/array",
+	"dojo/_base/declare",
+	"dojo/_base/lang",
+	"dojo/_base/window",
+	"dijit/_Contained",
+	"dijit/_WidgetBase",
+	"dojo/_base/xhr",
+	"./ProgressIndicator"
+], function(dojo, array, declare, lang, win, Contained, WidgetBase, xhr, ProgressIndicator){
 
 	// summary:
 	//		A very simple content pane to embed an HTML fragment.
@@ -8,18 +17,29 @@ define(["dojo/_base/kernel", "dojo/_base/declare", "dijit/_WidgetBase", "dijit/_
 	//		onLoad() is called when parsing is done and the content is ready.
 	//		"dojo/_base/xhr" is in the dependency list. Usually this is not
 	//		necessary, but there is a case where dojox.mobile custom build does not
-	//		contain dojo._base.xhr.
+	//		contain xhr.
 
-	return dojo.declare("dojox.mobile.ContentPane", [dijit._WidgetBase,dijit._Container,dijit._Contained],{
+	/*=====
+		WidgetBase = dijit._WidgetBase;
+		Contained = dijit._Contained;
+	=====*/
+	return declare("dojox.mobile.ContentPane", [WidgetBase, Contained],{
 		href: "",
 		content: "",
 		parseOnLoad: true,
 		prog: true, // show progress indicator
 
+		buildRendering: function(){
+			this.inherited(arguments);
+			if(!this.containerNode){
+				this.containerNode = this.domNode;
+			}
+		},
+
 		startup: function(){
 			if(this._started){ return; }
 			if(this.prog){
-				this._p = dojox.mobile.ProgressIndicator.getInstance();
+				this._p = ProgressIndicator.getInstance();
 			}
 			var parent = this.getParent && this.getParent();
 			if(!parent || !parent.resize){ // top level widget
@@ -29,7 +49,7 @@ define(["dojo/_base/kernel", "dojo/_base/declare", "dijit/_WidgetBase", "dijit/_
 		},
 	
 		resize: function(){
-			dojo.forEach(this.getChildren(), function(child){
+			array.forEach(this.getChildren(), function(child){
 				if(child.resize){ child.resize(); }
 			});
 		},
@@ -50,15 +70,15 @@ define(["dojo/_base/kernel", "dojo/_base/declare", "dijit/_WidgetBase", "dijit/_
 		_setHrefAttr: function(/*String*/href){
 			var p = this._p;
 			if(p){
-				dojo.body().appendChild(p.domNode);
+				win.body().appendChild(p.domNode);
 				p.start();
 			}
 			this.href = href;
-			dojo.xhrGet({
+			xhr.get({
 				url: href,
 				handleAs: "text",
-				load: dojo.hitch(this, "loadHandler"),
-				error: dojo.hitch(this, "errorHandler")
+				load: lang.hitch(this, "loadHandler"),
+				error: lang.hitch(this, "errorHandler")
 			});
 		},
 

@@ -1,10 +1,24 @@
-define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,WidgetBase,Contained){
+define([
+	"dojo/_base/array",
+	"dojo/_base/connect",
+	"dojo/_base/declare",
+	"dojo/_base/event",
+	"dojo/_base/window",
+	"dojo/dom-class",
+	"dijit/_Contained",
+	"dijit/_WidgetBase",
+	"./sniff"
+], function(array, connect, declare, event, win, domClass, Contained, WidgetBase, has){
 	// module:
 	//		dojox/mobile/Switch
 	// summary:
 	//		TODOC
 
-	return dojo.declare("dojox.mobile.Switch", [dijit._WidgetBase,dijit._Contained],{
+	/*=====
+		WidgetBase = dijit._WidgetBase;
+		Contained = dijit._Contained;
+	=====*/
+	return declare("dojox.mobile.Switch", [WidgetBase, Contained],{
 		value: "on",
 		name: "",
 		leftLabel: "ON",
@@ -12,7 +26,7 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 		_width: 53,
 
 		buildRendering: function(){
-			this.domNode = dojo.doc.createElement("DIV");
+			this.domNode = win.doc.createElement("DIV");
 			var c = this.srcNodeRef ? this.srcNodeRef.className : this.className;
 			this._swClass = (c || "").replace(/ .*/,"");
 			this.domNode.className = "mblSwitch";
@@ -37,7 +51,7 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 
 		postCreate: function(){
 			this.connect(this.domNode, "onclick", "onClick");
-			this.connect(this.domNode, dojox.mobile.hasTouch ? "touchstart" : "onmousedown", "onTouchStart");
+			this.connect(this.domNode, has('touch') ? "touchstart" : "onmousedown", "onTouchStart");
 		},
 
 		_changeState: function(/*String*/state, /*Boolean*/anim){
@@ -46,16 +60,16 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 			this.right.style.display = "";
 			this.inner.style.left = "";
 			if(anim){
-				dojo.addClass(this.domNode, "mblSwitchAnimation");
+				domClass.add(this.domNode, "mblSwitchAnimation");
 			}
-			dojo.removeClass(this.domNode, on ? "mblSwitchOff" : "mblSwitchOn");
-			dojo.addClass(this.domNode, on ? "mblSwitchOn" : "mblSwitchOff");
+			domClass.remove(this.domNode, on ? "mblSwitchOff" : "mblSwitchOn");
+			domClass.add(this.domNode, on ? "mblSwitchOn" : "mblSwitchOff");
 	
 			var _this = this;
 			setTimeout(function(){
 				_this.left.style.display = on ? "" : "none";
 				_this.right.style.display = !on ? "" : "none";
-				dojo.removeClass(_this.domNode, "mblSwitchAnimation");
+				domClass.remove(_this.domNode, "mblSwitchAnimation");
 			}, anim ? 300 : 0);
 		},
 
@@ -67,12 +81,12 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 		},
 	
 		createRoundMask: function(className, r, w){
-			if(!dojo.isWebKit || !className){ return; }
+			if(!has("webkit") || !className){ return; }
 			if(!this._createdMasks){ this._createdMasks = []; }
 			if(this._createdMasks[className]){ return; }
 			this._createdMasks[className] = 1;
 	
-			var ctx = dojo.doc.getCSSCanvasContext("2d", className+"Mask", w, 100);
+			var ctx = win.doc.getCSSCanvasContext("2d", className+"Mask", w, 100);
 			ctx.fillStyle = "#000000";
 			ctx.beginPath();
 			ctx.moveTo(r, 0);
@@ -97,13 +111,13 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 			this.innerStartX = this.inner.offsetLeft;
 			if(!this._conn){
 				this._conn = [];
-				this._conn.push(dojo.connect(this.inner, dojox.mobile.hasTouch ? "touchmove" : "onmousemove", this, "onTouchMove"));
-				this._conn.push(dojo.connect(this.inner, dojox.mobile.hasTouch ? "touchend" : "onmouseup", this, "onTouchEnd"));
+				this._conn.push(connect.connect(this.inner, has('touch') ? "touchmove" : "onmousemove", this, "onTouchMove"));
+				this._conn.push(connect.connect(this.inner, has('touch') ? "touchend" : "onmouseup", this, "onTouchEnd"));
 			}
 			this.touchStartX = e.touches ? e.touches[0].pageX : e.clientX;
 			this.left.style.display = "";
 			this.right.style.display = "";
-			dojo.stopEvent(e);
+			event.stop(e);
 		},
 	
 		onTouchMove: function(e){
@@ -126,11 +140,11 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 		},
 	
 		onTouchEnd: function(e){
-			dojo.forEach(this._conn, dojo.disconnect);
+			array.forEach(this._conn, connect.disconnect);
 			this._conn = null;
 			if(this.innerStartX == this.inner.offsetLeft){
-				if(dojox.mobile.hasTouch){
-					var ev = dojo.doc.createEvent("MouseEvents");
+				if(has('touch')){
+					var ev = win.doc.createEvent("MouseEvents");
 					ev.initEvent("click", true, true);
 					this.inner.dispatchEvent(ev);
 				}
@@ -157,12 +171,12 @@ define(["./common","dijit/_WidgetBase","dijit/_Contained"], function(mcommon,Wid
 	
 		_setLeftLabelAttr: function(/*String*/label){
 			this.leftLabel = label;
-			this.left.firstChild.innerHTML = this._cv(label);
+			this.left.firstChild.innerHTML = this._cv ? this._cv(label) : label;
 		},
 	
 		_setRightLabelAttr: function(/*String*/label){
 			this.rightLabel = label;
-			this.right.firstChild.innerHTML = this._cv(label);
+			this.right.firstChild.innerHTML = this._cv ? this._cv(label) : label;
 		}
 	});
 });

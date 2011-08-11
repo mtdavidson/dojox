@@ -1,7 +1,10 @@
-define(["dojo/_base/kernel", "dojo/_base/sniff"], function(dojo, has){
-	dojo.getObject("mobile.compat", true, dojox);
-	if(!dojo.isWebKit){
+define([
+	"dojo/_base/lang",
+	"dojo/_base/sniff"
+], function(lang, has){
+	var dm = lang.getObject("dojox.mobile", true);
+	if(!has("webkit")){
 		require(["dojox/mobile/_compat"]);
 	}
-	return dojox.mobile.compat;
+	return dm;
 });

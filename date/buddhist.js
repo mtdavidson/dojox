@@ -1,4 +1,4 @@
-define(["dojo/_base/kernel", "dojo/date", "./buddhist/Date"], function(d, dd, buddhistDate){
+define(["dojo/_base/kernel", "dojo/date", "./buddhist/Date"], function(dojo, dd, buddhistDate){
 	dojo.getObject("date.buddhist", true, dojox);
 	dojo.experimental("dojox.date.buddhist");
 
@@ -14,9 +14,9 @@ dojox.date.buddhist.isLeapYear = function(/*buddhist.Date*/dateObject){
 
 //FIXME: reduce compare, add, diff also
 dojox.date.buddhist.compare = function(/*buddhist.Date*/date1, /*buddhist.Date*/date2, /*String?*/portion){
-//	summary:
+	//	summary:
 	//		Compare two buddhist date objects by date, time, or both.
-	return dd.compare(date1,date2, portion); //FIXME
+	return dd.compare(date1,date2, portion); // int
 };
 
 

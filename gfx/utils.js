@@ -1,16 +1,17 @@
-define(["dojox/gfx"], function(){
-	var gu = dojo.getObject("dojox.gfx.utils", true);
-	var d = dojo, g = dojox.gfx;
+define(["dojo/_base/kernel","dojox","dojo/_base/lang", ".", "dojo/_base/html","dojo/_base/array", "dojo/_base/window", "dojo/_base/json", 
+	"dojo/_base/Deferred", "dojo/_base/sniff"], 
+  function(dojo, dojox, lang, gfx, html, arr, win, jsonLib, Deferred, has){
+	var gu = lang.getObject("dojox.gfx.utils", true);
 
-	dojo.mixin(gu, {
+	lang.mixin(gu, {
 		forEach: function(
 			/* dojox.gfx.Surface || dojox.gfx.Shape */ object,
 			/*Function|String|Array*/ f, /*Object?*/ o
 		){
-			o = o || d.global;
+			o = o || win.global;
 			f.call(o, object);
-			if(object instanceof g.Surface || object instanceof g.Group){
-				d.forEach(object.children, function(shape){
+			if(object instanceof gfx.Surface || object instanceof gfx.Group){
+				arr.forEach(object.children, function(shape){
 					gu.forEach(shape, f, o);
 				});
 			}
@@ -19,9 +20,9 @@ define(["dojox/gfx"], function(){
 		serialize: function(
 			/* dojox.gfx.Surface || dojox.gfx.Shape */ object
 		){
-			var t = {}, v, isSurface = object instanceof g.Surface;
-			if(isSurface || object instanceof g.Group){
-				t.children = d.map(object.children, gu.serialize);
+			var t = {}, v, isSurface = object instanceof gfx.Surface;
+			if(isSurface || object instanceof gfx.Group){
+				t.children = arr.map(object.children, gu.serialize);
 				if(isSurface){
 					return t.children;	// Array
 				}
@@ -51,7 +52,7 @@ define(["dojox/gfx"], function(){
 			/* dojox.gfx.Surface || dojox.gfx.Shape */ object,
 			/* Boolean? */ prettyPrint
 		){
-			return d.toJson(gu.serialize(object), prettyPrint);	// String
+			return jsonLib.toJson(gu.serialize(object), prettyPrint);	// String
 		},
 
 		deserialize: function(
@@ -59,7 +60,7 @@ define(["dojox/gfx"], function(){
 			/* dojox.gfx.Shape || Array */ object
 		){
 			if(object instanceof Array){
-				return d.map(object, d.hitch(null, gu.deserialize, parent));	// Array
+				return arr.map(object, lang.hitch(null, gu.deserialize, parent));	// Array
 			}
 			var shape = ("shape" in object) ? parent.createShape(object.shape) : parent.createGroup();
 			if("transform" in object){
@@ -75,7 +76,7 @@ define(["dojox/gfx"], function(){
 				shape.setFont(object.font);
 			}
 			if("children" in object){
-				d.forEach(object.children, d.hitch(null, gu.deserialize, shape));
+				arr.forEach(object.children, lang.hitch(null, gu.deserialize, shape));
 			}
 			return shape;	// dojox.gfx.Shape
 		},
@@ -83,7 +84,7 @@ define(["dojox/gfx"], function(){
 		fromJson: function(
 			/* dojox.gfx.Surface || dojox.gfx.Shape */ parent,
 			/* String */ json){
-			return gu.deserialize(parent, d.fromJson(json));	// Array || dojox.gfx.Shape
+			return gu.deserialize(parent, jsonLib.fromJson(json));	// Array || dojox.gfx.Shape
 		},
 
 		toSvg: function(/*GFX object*/surface){
@@ -102,7 +103,7 @@ define(["dojox/gfx"], function(){
 		
 			//Since the init and even surface creation can be async, we need to
 			//return a deferred that will be called when content has serialized.
-			var deferred = new dojo.Deferred();
+			var deferred = new Deferred();
 		
 			if(dojox.gfx.renderer === "svg"){
 				//If we're already in SVG mode, this is easy and quick.
@@ -129,9 +130,9 @@ define(["dojox/gfx"], function(){
 						var node = gu._gfxSvgProxy.document.createElement("div");
 						gu._gfxSvgProxy.document.body.appendChild(node);
 						//Set the node scaling.
-						dojo.withDoc(gu._gfxSvgProxy.document, function() {
-							dojo.style(node, "width", width);
-							dojo.style(node, "height", height);
+						win.withDoc(gu._gfxSvgProxy.document, function() {
+							html.style(node, "width", width);
+							html.style(node, "height", height);
 						}, this);
 
 						//Create temp surface to render object to and render.
@@ -190,9 +191,9 @@ define(["dojox/gfx"], function(){
 			// tags:
 			//		private
 			if(!gu._initSvgSerializerDeferred){
-				gu._initSvgSerializerDeferred = new dojo.Deferred();
-				var f = dojo.doc.createElement("iframe");
-				dojo.style(f, {
+				gu._initSvgSerializerDeferred = new Deferred();
+				var f = win.doc.createElement("iframe");
+				html.style(f, {
 					display: "none",
 					position: "absolute",
 					width: "1em",
@@ -200,17 +201,17 @@ define(["dojox/gfx"], function(){
 					top: "-10000px"
 				});
 				var intv;
-				if(dojo.isIE){
+				if(has("ie")){
 					f.onreadystatechange = function(){
 						if(f.contentWindow.document.readyState == "complete"){
 							f.onreadystatechange = function() {};
 							intv = setInterval(function() {
-								if(f.contentWindow[dojo._scopeName] &&
-								   f.contentWindow[dojox._scopeName].gfx &&
-								   f.contentWindow[dojox._scopeName].gfx.utils){
+								if(f.contentWindow[kernel.scopeMap.dojo._scopeName] &&
+								   f.contentWindow[kernel.scopeMap.dojox._scopeName].gfx &&
+								   f.contentWindow[kernel.scopeMap.dojox._scopeName].gfx.utils){
 									clearInterval(intv);
-									f.contentWindow.parent[dojox._scopeName].gfx.utils._gfxSvgProxy = f.contentWindow;
-									f.contentWindow.parent[dojox._scopeName].gfx.utils._svgSerializerInitialized();
+									f.contentWindow.parent[kernel.scopeMap.dojox._scopeName].gfx.utils._gfxSvgProxy = f.contentWindow;
+									f.contentWindow.parent[kernel.scopeMap.dojox._scopeName].gfx.utils._svgSerializerInitialized();
 								}
 							}, 50);
 						}
@@ -219,20 +220,20 @@ define(["dojox/gfx"], function(){
 					f.onload = function(){
 						f.onload = function() {};
 						intv = setInterval(function() {
-							if(f.contentWindow[dojo._scopeName] &&
-							   f.contentWindow[dojox._scopeName].gfx &&
-							   f.contentWindow[dojox._scopeName].gfx.utils){
+							if(f.contentWindow[kernel.scopeMap.dojo._scopeName] &&
+							   f.contentWindow[kernel.scopeMap.dojox._scopeName].gfx &&
+							   f.contentWindow[kernel.scopeMap.dojox._scopeName].gfx.utils){
 								clearInterval(intv);
-								f.contentWindow.parent[dojox._scopeName].gfx.utils._gfxSvgProxy = f.contentWindow;
-								f.contentWindow.parent[dojox._scopeName].gfx.utils._svgSerializerInitialized();
+								f.contentWindow.parent[kernel.scopeMap.dojox._scopeName].gfx.utils._gfxSvgProxy = f.contentWindow;
+								f.contentWindow.parent[kernel.scopeMap.dojox._scopeName].gfx.utils._svgSerializerInitialized();
 							}
 						}, 50);
 					};
 				}
 				//We have to load the GFX SVG proxy frame.  Default is to use the one packaged in dojox.
-				var uri = (dojo.config["dojoxGfxSvgProxyFrameUrl"]||dojo.moduleUrl("dojox", "gfx/resources/gfxSvgProxyFrame.html"));
+				var uri = (kernel.config["dojoxGfxSvgProxyFrameUrl"]||kernel.moduleUrl("dojox", "gfx/resources/gfxSvgProxyFrame.html"));
 				f.setAttribute("src", uri.toString());
-				dojo.body().appendChild(f);
+				win.body().appendChild(f);
 			}
 		},
 

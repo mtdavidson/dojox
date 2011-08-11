@@ -1,7 +1,24 @@
-define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/html", "dojo/ready", "dijit/_WidgetBase"],
-	function(dojo, dlang, darray, dhtml, ready, WidgetBase){
+define([
+	"dojo/_base/kernel", // to test dojo.hash
+	"dojo/_base/array",
+	"dojo/_base/config",
+	"dojo/_base/connect",
+	"dojo/_base/lang",
+	"dojo/_base/window",
+	"dojo/dom-class",
+	"dojo/dom-construct",
+	"dojo/dom-style",
+//	"dojo/hash", // optionally prereq'ed
+	"dojo/ready",
+	"dijit/registry",	// registry.toArray
+	"./sniff",
+	"./uacss"
+], function(dojo, array, config, connect, lang, win, domClass, domConstruct, domStyle, ready, registry, has, uacss){
 
-	dojo.getObject("mobile", true, dojox);
+	var dm = lang.getObject("dojox.mobile", true);
+	/*=====
+	dm = dojox.mobile
+	=====*/
 
 // summary:
 //		Mobile Widgets
@@ -20,47 +37,19 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 //		used in this module. If you use the compatibility module, fancy visual
 //		effects work better even on non-CSS3 browsers.
 //
-//		Note that use of dijit._Templated and dojo.query was intentionally
+//		Note that use of dijit._Templated and query was intentionally
 //		avoided to reduce download code size.
-
-	var ua = navigator.userAgent;
-
-	// BlackBerry (OS 6 or later only)
-	dojo.isBB = ua.indexOf("BlackBerry") >= 0 && parseFloat(ua.split("Version/")[1]) || undefined;
-
-	// Android
-	dojo.isAndroid = parseFloat(ua.split("Android ")[1]) || undefined;
-
-	// iPhone, iPod, or iPad
-	// If iPod or iPad is detected, in addition to dojo.isIPod or dojo.isIPad,
-	// dojo.isIPhone will also have iOS version number.
-	if(ua.match(/(iPhone|iPod|iPad)/)){
-		var p = "is" + RegExp.$1.replace(/i/, 'I');
-		var v = ua.match(/OS ([\d_]+)/) ? RegExp.$1 : "1";
-		dojo.isIPhone = dojo[p] = parseFloat(v.replace(/_/, '.').replace(/_/g, ''));
-	}
-
-	var html = dojo.doc.documentElement;
-	html.className += dojo.trim([
-		dojo.isBB ? "dj_bb" : "",
-		dojo.isAndroid ? "dj_android" : "",
-		dojo.isIPhone ? "dj_iphone" : "",
-		dojo.isIPod ? "dj_ipod" : "",
-		dojo.isIPad ? "dj_ipad" : ""
-	].join(" ").replace(/ +/g," "));
-
-	var dm = dojox.mobile;
 
 	dm.getScreenSize = function(){
 		return {
-			h: dojo.global.innerHeight || dojo.doc.documentElement.clientHeight,
-			w: dojo.global.innerWidth || dojo.doc.documentElement.clientWidth
+			h: win.global.innerHeight || win.doc.documentElement.clientHeight,
+			w: win.global.innerWidth || win.doc.documentElement.clientWidth
 		};
 	};
 
 	dm.updateOrient = function(){
 		var dim = dm.getScreenSize();
-		dojo.replaceClass(dojo.doc.documentElement,
+		domClass.replace(win.doc.documentElement,
 				  dim.h > dim.w ? "dj_portrait" : "dj_landscape",
 				  dim.h > dim.w ? "dj_landscape" : "dj_portrait");
 	};
@@ -79,8 +68,8 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 			to = "phone";
 		}
 		if(to){
-			dojo.replaceClass(dojo.doc.documentElement, "dj_"+to, "dj_"+from);
-			dojo.publish("/dojox/mobile/screenSize/"+to, [dim]);
+			domClass.replace(win.doc.documentElement, "dj_"+to, "dj_"+from);
+			connect.publish("/dojox/mobile/screenSize/"+to, [dim]);
 		}
 		this._sz = sz;
 	};
@@ -88,33 +77,33 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 
 	dm.setupIcon = function(/*DomNode*/iconNode, /*String*/iconPos){
 		if(iconNode && iconPos){
-			var arr = dojo.map(iconPos.split(/[ ,]/),function(item){return item-0});
+			var arr = array.map(iconPos.split(/[ ,]/),function(item){return item-0});
 			var t = arr[0]; // top
 			var r = arr[1] + arr[2]; // right
 			var b = arr[0] + arr[3]; // bottom
 			var l = arr[1]; // left
-			var offset = iconNode.parentNode ? dojo.style(iconNode.parentNode, "paddingLeft") : 8;
-			dojo.style(iconNode, {
+			var offset = iconNode.parentNode ? domStyle.get(iconNode.parentNode, "paddingLeft") : 8;
+			domStyle.set(iconNode, {
 				clip: "rect("+t+"px "+r+"px "+b+"px "+l+"px)",
-				top: (iconNode.parentNode ? dojo.style(iconNode, "top") : 0) - t + "px",
+				top: (iconNode.parentNode ? domStyle.get(iconNode, "top") : 0) - t + "px",
 				left: offset - l + "px"
 			});
 		}
 	};
 
-	dm.hideAddressBarWait = typeof(dojo.config["mblHideAddressBarWait"]) === "number" ?
-		dojo.config["mblHideAddressBarWait"] : 1500; // [ms] value must be larger than 800
+	dm.hideAddressBarWait = typeof(config["mblHideAddressBarWait"]) === "number" ?
+		config["mblHideAddressBarWait"] : 1500; // [ms] value must be larger than 800
 	dm.hide_1 = function(force){
 		scrollTo(0, 1);
 		var h = dm.getScreenSize().h + "px";
-		if(dojo.isAndroid){
+		if(has('android')){
 			if(force){
-				dojo.body().style.minHeight = h;
+				win.body().style.minHeight = h;
 			}
 			dm.resizeAll();
 		}else{
-			if(force || dm._h === h && h !== dojo.body().style.minHeight){
-				dojo.body().style.minHeight = h;
+			if(force || dm._h === h && h !== win.body().style.minHeight){
+				win.body().style.minHeight = h;
 				dm.resizeAll();
 			}
 		}
@@ -122,8 +111,8 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 	};
 	dm.hide_fs = function(){
 		// for fail-safe, in case of failure to complete the address bar hiding in time
-		var t = dojo.body().style.minHeight;
-		dojo.body().style.minHeight = (dm.getScreenSize().h * 2) + "px"; // to ensure enough height for scrollTo to work
+		var t = win.body().style.minHeight;
+		win.body().style.minHeight = (dm.getScreenSize().h * 2) + "px"; // to ensure enough height for scrollTo to work
 		scrollTo(0, 1);
 		setTimeout(function(){
 			dm.hide_1(1);
@@ -134,7 +123,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 		if(dm.disableHideAddressBar || dm._hiding){ return; }
 		dm._hiding = true;
 		dm._h = 0;
-		dojo.body().style.minHeight = (dm.getScreenSize().h * 2) + "px"; // to ensure enough height for scrollTo to work
+		win.body().style.minHeight = (dm.getScreenSize().h * 2) + "px"; // to ensure enough height for scrollTo to work
 		setTimeout(dm.hide_1, 0);
 		setTimeout(dm.hide_1, 200);
 		setTimeout(dm.hide_1, 800);
@@ -158,7 +147,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 		//		top level widget or not.
 		//		If omitted, search the entire page.
 		if(dm.disableResizeAll){ return; }
-		dojo.publish("/dojox/mobile/resizeAll", [evt, root]);
+		connect.publish("/dojox/mobile/resizeAll", [evt, root]);
 		dm.updateOrient();
 		dm.detectScreenSize();
 		var isTopLevel = function(w){
@@ -166,7 +155,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 			return !!((!parent || !parent.resize) && w.resize);
 		};
 		var resizeRecursively = function(w){
-			dojo.forEach(w.getChildren(), function(child){
+			array.forEach(w.getChildren(), function(child){
 				if(isTopLevel(child)){ child.resize(); }
 				resizeRecursively(child);
 			});
@@ -175,14 +164,13 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 			if(root.resize){ root.resize(); }
 			resizeRecursively(root);
 		}else{
-			dijit.registry.filter(isTopLevel).forEach(function(w){
-				w.resize();
-			});
+			array.forEach(array.filter(registry.toArray(), isTopLevel),
+					function(w){ w.resize(); });
 		}
 	};
 
 	dm.openWindow = function(url, target){
-		dojo.global.open(url, target || "_blank");
+		win.global.open(url, target || "_blank");
 	};
 
 	dm.createDomButton = function(/*DomNode*/refNode, /*Object?*/style, /*DomNode?*/toNode){
@@ -195,21 +183,21 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 				nDiv = RegExp.$2 - 0;
 			}
 			for(var i = 0, p = node; i < nDiv; i++){
-				p = p.firstChild || dojo.create("DIV", null, p);
+				p = p.firstChild || domConstruct.create("DIV", null, p);
 			}
 			if(toNode){
 				setTimeout(function(){
-					dojo.removeClass(refNode, btnClass);
+					domClass.remove(refNode, btnClass);
 				}, 0);
-				dojo.addClass(toNode, btnClass);
+				domClass.add(toNode, btnClass);
 			}
 		}else if(s.indexOf(".") !== -1){ // file name
-			dojo.create("IMG", {src:s}, node);
+			domConstruct.create("IMG", {src:s}, node);
 		}else{
 			return null;
 		}
-		dojo.addClass(node, "mblDomButton");
-		dojo.style(node, style);
+		domClass.add(node, "mblDomButton");
+		!!style && domStyle.set(node, style);
 		return node;
 	};
 	
@@ -223,17 +211,17 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 		if(icon && icon.indexOf("mblDomButton") === 0){
 			// DOM button
 			if(node && node.className.match(/(mblDomButton\w+)/)){
-				dojo.removeClass(node, RegExp.$1);
+				domClass.remove(node, RegExp.$1);
 			}else{
-				node = dojo.create("DIV");
+				node = domConstruct.create("DIV");
 			}
 			node.title = title;
-			dojo.addClass(node, icon);
+			domClass.add(node, icon);
 			dm.createDomButton(node);
 		}else if(icon && icon !== "none"){
 			// Image
 			if(!node || node.nodeName !== "IMG"){
-				node = dojo.create("IMG", {
+				node = domConstruct.create("IMG", {
 					alt: title
 				});
 			}
@@ -241,7 +229,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 			dm.setupIcon(node, iconPos);
 			if(parent && iconPos){
 				var arr = iconPos.split(/[ ,]/);
-				dojo.style(parent, {
+				domStyle.set(parent, {
 					width: arr[2] + "px",
 					height: arr[3] + "px"
 				});
@@ -253,18 +241,18 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 		return node;
 	};
 
-	if(dojo.config.parseOnLoad){
-		dojo.ready(90, function(){
-			// avoid use of dojo.query
+	if(config.parseOnLoad){
+		ready(90, function(){
+			// avoid use of query
 			/*
-			var list = dojo.query('[lazy=true] [dojoType]', null);
+			var list = query('[lazy=true] [dojoType]', null);
 			list.forEach(function(node, index, nodeList){
 				node.setAttribute("__dojoType", node.getAttribute("dojoType"));
 				node.removeAttribute("dojoType");
 			});
 			*/
 		
-			var nodes = dojo.body().getElementsByTagName("*");
+			var nodes = win.body().getElementsByTagName("*");
 			var i, len, s;
 			len = nodes.length;
 			for(i = 0; i < len; i++){
@@ -279,29 +267,29 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 		});
 	}
 	
-	dojo.addOnLoad(function(){
+	ready(function(){
 		dm.detectScreenSize(true);
-		if(dojo.config["mblApplyPageStyles"] !== false){
-			dojo.addClass(dojo.doc.documentElement, "mobile");
+		if(config["mblApplyPageStyles"] !== false){
+			domClass.add(win.doc.documentElement, "mobile");
 		}
 
-		if(dojo.config["mblAndroidWorkaround"] !== false && dojo.isAndroid >= 2.2 && dojo.isAndroid < 3.1){ // workaround for android screen flicker problem
-			if(dojo.config["mblAndroidWorkaroundButtonStyle"] !== false){
+		if(config["mblAndroidWorkaround"] !== false && has('android') >= 2.2 && has('android') < 3.1){ // workaround for android screen flicker problem
+			if(config["mblAndroidWorkaroundButtonStyle"] !== false){
 				// workaround to avoid buttons disappear due to the side-effect of the webkitTransform workaroud below
-				dojo.create("style", {innerHTML:"BUTTON,INPUT[type='button'],INPUT[type='submit'],INPUT[type='reset'],INPUT[type='file']::-webkit-file-upload-button{-webkit-appearance:none;}"}, dojo.doc.head, "first");
+				domConstruct.create("style", {innerHTML:"BUTTON,INPUT[type='button'],INPUT[type='submit'],INPUT[type='reset'],INPUT[type='file']::-webkit-file-upload-button{-webkit-appearance:none;}"}, win.doc.head, "first");
 			}
-			if(dojo.isAndroid < 3){ // for Android 2.2.x and 2.3.x
-				dojo.style(dojo.doc.documentElement, "webkitTransform", "translate3d(0,0,0)");
+			if(has('android') < 3){ // for Android 2.2.x and 2.3.x
+				domStyle.set(win.doc.documentElement, "webkitTransform", "translate3d(0,0,0)");
 				// workaround for auto-scroll issue when focusing input fields
-				dojo.connect(null, "onfocus", null, function(e){
-					dojo.style(dojo.doc.documentElement, "webkitTransform", "");
+				connect.connect(null, "onfocus", null, function(e){
+					domStyle.set(win.doc.documentElement, "webkitTransform", "");
 				});
-				dojo.connect(null, "onblur", null, function(e){
-					dojo.style(dojo.doc.documentElement, "webkitTransform", "translate3d(0,0,0)");
+				connect.connect(null, "onblur", null, function(e){
+					domStyle.set(win.doc.documentElement, "webkitTransform", "translate3d(0,0,0)");
 				});
 			}else{ // for Android 3.0.x
-				if(dojo.config["mblAndroid3Workaround"] !== false){
-					dojo.style(dojo.doc.documentElement, {
+				if(config["mblAndroid3Workaround"] !== false){
+					domStyle.set(win.doc.documentElement, {
 						webkitBackfaceVisibility: "hidden",
 						webkitPerspective: 8000
 					});
@@ -312,27 +300,27 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 		//	You can disable hiding the address bar with the following djConfig.
 		//	var djConfig = { mblHideAddressBar: false };
 		var f = dm.resizeAll;
-		if(dojo.config["mblHideAddressBar"] !== false &&
+		if(config["mblHideAddressBar"] !== false &&
 			navigator.appVersion.indexOf("Mobile") != -1 ||
-			dojo.config["mblForceHideAddressBar"] === true){
+			config["mblForceHideAddressBar"] === true){
 			dm.hideAddressBar();
-			if(dojo.config["mblAlwaysHideAddressBar"] === true){
+			if(config["mblAlwaysHideAddressBar"] === true){
 				f = dm.hideAddressBar;
 			}
 		}
-		dojo.connect(null, (dojo.global.onorientationchange !== undefined && !dojo.isAndroid)
+		connect.connect(null, (win.global.onorientationchange !== undefined && !has('android'))
 			? "onorientationchange" : "onresize", null, f);
 	
-		// avoid use of dojo.query
+		// avoid use of query
 		/*
-		var list = dojo.query('[__dojoType]', null);
+		var list = query('[__dojoType]', null);
 		list.forEach(function(node, index, nodeList){
 			node.setAttribute("dojoType", node.getAttribute("__dojoType"));
 			node.removeAttribute("__dojoType");
 		});
 		*/
 	
-		var nodes = dojo.body().getElementsByTagName("*");
+		var nodes = win.body().getElementsByTagName("*");
 		var i, len = nodes.length, s;
 		for(i = 0; i < len; i++){
 			s = nodes[i].getAttribute("__dojoType");
@@ -346,14 +334,14 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 			// find widgets under root recursively
 			var findWidgets = function(root){
 				if(!root){ return []; }
-				var arr = dijit.findWidgets(root);
+				var arr = registry.findWidgets(root);
 				var widgets = arr;
 				for(var i = 0; i < widgets.length; i++){
 					arr = arr.concat(findWidgets(widgets[i].containerNode));
 				}
 				return arr;
 			};
-			dojo.subscribe("/dojo/hashchange", null, function(value){
+			connect.subscribe("/dojo/hashchange", null, function(value){
 				var view = dm.currentView;
 				if(!view){ return; }
 				var params = dm._params;
@@ -377,30 +365,20 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/array", "dojo/_base/
 			});
 		}
 	
-		dojo.body().style.visibility = "visible";
+		win.body().style.visibility = "visible";
 	});
-	
-	dijit.getEnclosingWidget = function(node){
-		while(node && node.tagName !== "BODY"){
-			if(node.getAttribute && node.getAttribute("widgetId")){
-				return dijit.registry.byId(node.getAttribute("widgetId"));
+
+	// To search _parentNode first.  TODO:1.8 reconsider this redefinition.
+	registry.getEnclosingWidget = function(node){
+		while(node){
+			var id = node.getAttribute && node.getAttribute("widgetId");
+			if(id){
+				return registry.byId(id);
 			}
 			node = node._parentNode || node.parentNode;
 		}
 		return null;
 	};
-
-	dojo.extend(dijit._WidgetBase, {
-		_cv: function(s){ return s; } // convert the given string
-	});
-
-	(function(){
-		// feature detection
-		if(dojo.isWebKit){
-			dm.hasTouch = (typeof dojo.doc.documentElement.ontouchstart != "undefined" &&
-				navigator.appVersion.indexOf("Mobile") != -1) || !!dojo.isAndroid;
-		}
-	})();
 
 	return dm;
 });

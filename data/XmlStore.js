@@ -396,7 +396,7 @@ dojo.declare("dojox.data.XmlStore", null, {
 		//		A function to call on error
 		var url = this._getFetchUrl(request);
 		if(!url){
-			errorHandler(new Error("No URL specified."));
+			errorHandler(new Error("No URL specified."), request);
 			return;
 		}
 		var localRequest = (!this.sendQuery ? request : {}); // use request for _getItems()
@@ -521,6 +521,9 @@ dojo.declare("dojox.data.XmlStore", null, {
 					value = query[key];
 					if(typeof value === "string"){
 						regexpList[key] = dojo.data.util.filter.patternToRegExp(value, ignoreCase);
+					}else if(value){
+						// It's an object, possibly regexp, so treat it as one.
+						regexpList[key] = value;
 					}
 				}
 				for(var attribute in query){

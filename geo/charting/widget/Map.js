@@ -1,8 +1,9 @@
 
-define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare","dojo/_base/html", "dijit/_Widget","dojox/geo/charting/Map"],
-							function(dojo, lang, declare, dhtml, Widget, Map) {
+define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare","dojo/_base/html","dojo/dom-geometry",
+		"dijit/_Widget","dojox/geo/charting/Map"],
+							function(dojo, lang, declare, html,domGeom, Widget, Map) {
 
-return dojo.declare("dojox.geo.charting.widget.Map", dijit._Widget, {
+return declare("dojox.geo.charting.widget.Map", Widget, {
 	// summary:
 	//		A map viewer widget based on the dojox.geo.charting.Map component
 	//
@@ -35,18 +36,18 @@ return dojo.declare("dojox.geo.charting.widget.Map", dijit._Widget, {
 	dataBindingValueFunction: null,
 	markerData : "",
 	series : "",
-	adjustMapCenterOnResize: false,
-	adjustMapScaleOnResize: false,
-	animateOnResize: false,
+	adjustMapCenterOnResize: null,
+	adjustMapScaleOnResize: null,
+	animateOnResize: null,
 	onFeatureClick: null,
 	onFeatureOver: null,
-	enableMouseSupport: false,
-	enableTouchSupport: false,
-	enableMouseZoom: false,
-	enableMousePan: false,
+	enableMouseSupport: null,
+	enableTouchSupport: null,
+	enableMouseZoom: null,
+	enableMousePan: null,
 	enableKeyboardSupport: false,
 	showTooltips: false,
-	enableFeatureZoom: true,
+	enableFeatureZoom: null,
 	colorAnimationDuration: 0,
 	mouseClickThreshold: 2,
 	_mouseInteractionSupport:null,
@@ -119,6 +120,7 @@ return dojo.declare("dojox.geo.charting.widget.Map", dijit._Widget, {
 				this._mouseInteractionSupport = new dojox.geo.charting.MouseInteractionSupport(this.map,options);
 				this._mouseInteractionSupport.connect();
 			}
+			
 			if (this.enableTouchSupport) {
 				if (!dojox.geo.charting.TouchInteractionSupport) {
 					throw Error("Can't find dojox.geo.charting.TouchInteractionSupport. Didn't you forget to dojo" + ".require() it?");
@@ -158,8 +160,8 @@ return dojo.declare("dojox.geo.charting.widget.Map", dijit._Widget, {
 				break;
 			case 1:
 				// argument, override node box
-				box = dojo.mixin({}, b);
-				dojo.marginBox(this.domNode, box);
+				box = lang.mixin({}, b);
+				domGeom.getMarginBox(this.domNode, box);
 				break;
 			case 2:
 				// two argument, width, height
@@ -167,7 +169,7 @@ return dojo.declare("dojox.geo.charting.widget.Map", dijit._Widget, {
 					w : arguments[0],
 					h : arguments[1]
 				};
-				dojo.marginBox(this.domNode, box);
+				domGeom.getMarginBox(this.domNode, box);
 				break;
 		}
 		

@@ -1,11 +1,18 @@
-define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/_base/html", "dojo/date","dojo/date/locale","./SpinWheel","./SpinWheelSlot"],
-	function(dojo, declare, dhtml, ddate, dlocale, SpinWheel, SpinWheelSlot){
+define([
+	"dojo/_base/declare",
+	"dojo/dom-class",
+	"./SpinWheel",
+	"./SpinWheelSlot"
+], function(declare, domClass, SpinWheel, SpinWheelSlot){
 	// module:
 	//		dojox/mobile/SpinWheelTimePicker
 	// summary:
 	//		TODOC
 
-	return dojo.declare("dojox.mobile.SpinWheelTimePicker", dojox.mobile.SpinWheel, {
+	/*=====
+		SpinWheel = dojox.mobile.SpinWheel;
+	=====*/
+	return declare("dojox.mobile.SpinWheelTimePicker", SpinWheel, {
 		slotClasses: [
 			SpinWheelSlot,
 			SpinWheelSlot
@@ -22,17 +29,20 @@ define(["dojo/_base/kernel", "dojo/_base/declare", "dojo/_base/html", "dojo/date
 
 		buildRendering: function(){
 			this.inherited(arguments);
-			dojo.addClass(this.domNode, "mblSpinWheelTimePicker");
+			domClass.add(this.domNode, "mblSpinWheelTimePicker");
 		},
 
 		reset: function(){
 			// goto now
 			var slots = this.slots;
 			var now = new Date();
-			slots[0].setValue(now.getHours());
-			slots[0].setColor(now.getHours());
-			slots[1].setValue(now.getMinutes());
-			slots[1].setColor(now.getMinutes());
+			var _h = now.getHours() + "";
+			slots[0].setValue(_h);
+			slots[0].setColor(_h);
+			var m = now.getMinutes();
+			var _m = (m < 10 ? "0" : "") + m;
+			slots[1].setValue(_m);
+			slots[1].setColor(_m);
 		}
 	});
 });

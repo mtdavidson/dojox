@@ -342,7 +342,7 @@ define(["dojo/_base/kernel",
 					});
 				break;
                                 case dojox.geo.openlayers.BaseLayerType.CLOUDMADE: 
-                                        base = new layerArg(name, {
+                                        base = new Layer(name, {
                                                 olLayer : new OpenLayers.Layer.CloudMade(name, options)
                                         });
                                 break;

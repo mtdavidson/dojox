@@ -1,26 +1,17 @@
-define([
-	"dojo/_base/kernel",
-	"dojo/_base/lang",
-	"dojo/_base/connect",
-	"dojo/_base/array",
-	"dojo/_base/event",
-	"dojo/_base/fx",
-	"dojo/_base/window",
-	"dojo/fx",
-	"dojo/window",
-	"dojo/dom",
-	"dojo/dom-class",
-	"dojo/dom-geometry",
-	"dojo/dom-style",
-	"dijit",
-	"dijit/_Widget",
-	"dijit/_TemplatedMixin",
-	"dojo/_base/declare"
-], function (dojo, lang, connect, arrayUtil, eventUtil, fxBase, windowBase, fxUtil, windowUtil, domUtil, domClass, domGeometry, domStyle, dijit, _Widget, _TemplatedMixin) {
-dojo.experimental("dojox.layout.ResizeHandle");
+define(["dojo/_base/kernel","dojo/_base/lang","dojo/_base/connect","dojo/_base/array","dojo/_base/event",
+	"dojo/_base/fx","dojo/_base/window","dojo/fx","dojo/window","dojo/dom","dojo/dom-class",
+	"dojo/dom-geometry","dojo/dom-style","dijit/_base/manager","dijit/_Widget","dijit/_TemplatedMixin",
+	"dojo/_base/declare"], function (
+	kernel, lang, connect, arrayUtil, eventUtil, fxBase, windowBase, fxUtil, windowUtil, 
+	domUtil, domClass, domGeometry, domStyle, manager, Widget, TemplatedMixin, declare) {
 
-var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
-	[_Widget, _TemplatedMixin],
+kernel.experimental("dojox.layout.ResizeHandle");
+
+/*===== 
+	var Widget = dijit._Widget;
+	var TemplatedMixin = dijit._TemplatedMixin;
+=====*/
+var ResizeHandle = declare("dojox.layout.ResizeHandle",[Widget, TemplatedMixin],
 	{
 	// summary: A dragable handle used to resize an attached node.
 	//
@@ -116,7 +107,7 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 			// level so that we can overlay it on anything whenever the user
 			// resizes something. Since there is only one mouse pointer he
 			// can't at once resize multiple things interactively.
-			this._resizeHelper = dijit.byId('dojoxGlobalResizeHelper');
+			this._resizeHelper = manager.byId('dojoxGlobalResizeHelper');
 			if(!this._resizeHelper){
 				this._resizeHelper = new _ResizeHelper({
 						id: 'dojoxGlobalResizeHelper'
@@ -159,8 +150,8 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 		
 		if(this._isSizing){ return; }
 
-		dojo.publish(this.startTopic, [ this ]);
-		this.targetWidget = dijit.byId(this.targetId);
+		connect.publish(this.startTopic, [ this ]);
+		this.targetWidget = manager.byId(this.targetId);
 
 		this.targetDomNode = this.targetWidget ? this.targetWidget.domNode : domUtil.byId(this.targetId);
 		if(this.targetContainer){ this.targetDomNode = this.targetContainer; }
@@ -179,7 +170,8 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 		// (in most cases content-box, but it may be border-box if in backcompact mode)
 		var style = domStyle.getComputedStyle(this.targetDomNode), 
 			borderModel = domGeometry.boxModel==='border-model',
-			padborder = borderModel?{w:0,h:0}:domGeometry.getPadBorderExtents(this.targetDomNode, style), 
+			padborder = borderModel?{w:0,h:0}:domGeometry.getPadBorderExtents(this.targetDomNode, style),
+			margin = domGeometry.getMarginExtents(this.targetDomNode, style),
 			mb;
 		mb = this.startSize = { 
 				w: domStyle.get(this.targetDomNode, 'width', style), 
@@ -187,7 +179,8 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 				//ResizeHelper.resize expects a bounding box of the
 				//border box, so let's keep track of padding/border
 				//width/height as well
-				bw: padborder.w, bh: padborder.h};
+				pbw: padborder.w, pbh: padborder.h,
+				mw: margin.w, mh: margin.h};
 		
 		this._pconnects = [
 			connect.connect(windowBase.doc,"onmousemove",this,"_updateSizing"),
@@ -204,14 +197,14 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 		if(this.activeResize){
 			this._changeSizing(e);
 		}else{
-			var tmp = this._getNewCoords(e, true);
+			var tmp = this._getNewCoords(e, 'border');
 			if(tmp === false){ return; }
 			this._resizeHelper.resize(tmp);
 		}
 		e.preventDefault();
 	},
 
-	_getNewCoords: function(/* Event */ e, /* Boolean */ useBorderBox){
+	_getNewCoords: function(/* Event */ e, /* String */ box){
 		
 		// On IE, if you move the mouse above/to the left of the object being resized,
 		// sometimes clientX/Y aren't set, apparently.  Just ignore the event.
@@ -230,10 +223,18 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 			r = this._checkConstraints(newW, newH)
 		;
 		
-		if(useBorderBox){
-			r.w += this.startSize.bw;
-			r.h += this.startSize.bh;
+		switch(box){
+			case 'margin':
+				r.w += this.startSize.mw;
+				r.h += this.startSize.mh;
+				//pass through
+			case "border":
+				r.w += this.startSize.pbw;
+				r.h += this.startSize.pbh;
+				break;
+			//default: //native, do nothing
 		}
+
 		return r; // Object
 	},
 	
@@ -277,10 +278,12 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 		
 	_changeSizing: function(/*Event*/ e){
 		// summary: apply sizing information based on information in (e) to attached node
-		var tmp = this._getNewCoords(e);
+		
+		var isWidget = this.targetWidget && lang.isFunction(this.targetWidget.resize),
+			tmp = this._getNewCoords(e, isWidget && 'margin');
 		if(tmp === false){ return; }
 
-		if(this.targetWidget && lang.isFunction(this.targetWidget.resize)){
+		if(isWidget){
 			this.targetWidget.resize(tmp);
 		}else{
 			if(this.animateSizing){
@@ -316,7 +319,7 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 	_endSizing: function(/*Event*/ e){
 		// summary: disconnect listenrs and cleanup sizing
 		arrayUtil.forEach(this._pconnects, connect.disconnect);
-		var pub = lang.partial(dojo.publish, this.endTopic, [ this ]);
+		var pub = lang.partial(connect.publish, this.endTopic, [ this ]);
 		if(!this.activeResize){
 			this._resizeHelper.hide();
 			this._changeSizing(e);
@@ -336,9 +339,7 @@ var ResizeHandle = dojo.declare("dojox.layout.ResizeHandle",
 	
 });
 
-var _ResizeHelper = dojo.declare("dojox.layout._ResizeHelper",
-	_Widget,
-	{
+var _ResizeHelper = dojo.declare("dojox.layout._ResizeHelper", Widget, {
 	// summary: A global private resize helper shared between any
 	//		`dojox.layout.ResizeHandle` with activeSizing off.
 	
@@ -354,7 +355,7 @@ var _ResizeHelper = dojo.declare("dojox.layout._ResizeHelper",
 	
 	resize: function(/* Object */dim){
 		// summary: size the widget and place accordingly
-		domGeometry.setMarginBox(this.domNode, dim.l, dim.t, dim.w, dim.h);
+		domGeometry.setMarginBox(this.domNode, dim);
 	}
 	
 });

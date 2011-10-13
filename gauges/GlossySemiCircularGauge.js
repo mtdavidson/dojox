@@ -1,34 +1,38 @@
 define(["dojo/_base/declare","dojo/_base/Color","./GlossyCircularGaugeBase"],
   function(declare, Color, GlossyCircularGaugeBase) {
 
+/*=====
+	GlossyCircularGaugeBase = dojox.gauges.GlossyCircularGaugeBase;
+=====*/
+
 return declare("dojox.gauges.GlossySemiCircularGauge", [GlossyCircularGaugeBase], {
 	// summary:
 	//		Represents a semi circular gauge with a glossy appearance.
 	// example:
-	//	<div	dojoType="dojox.gauges.GlossySemiCircularGauge"
-	//		id="testGauge"
-	//		width="300"
-	//		height="300"
-	//		min="0"
-	//		max="100"
-	//	        value="0" 
-	//	        majorTicksInterval="10"
-	//		majorTicksColor="#c4c4c4"
-	//		minorTicksInterval="5"
-	//		minorTicksColor="#c4c4c4"
-	//		color="black" 
-	//		needleColor="#c4c4c4"
-	//		font="normal normal normal 10pt sans-serif"
-	//		textIndicatorFont="normal normal normal 20pt sans-serif"
-	//		textIndicatorVisible="true" 
-	//              textIndicatorColor="#c4c4c4" 
-	//              majorTicksLabelPlacement="inside"|"outside"
-	//              noChange="true"
-	//              title="title"
-	//              scalePrecision="0"
-	//              textIndicatorPrecision="0"
-	//	>
-	//	</div>
+	//	|<div	dojoType="dojox.gauges.GlossySemiCircularGauge"
+	//	|	id="testGauge"
+	//	|	width="300"
+	//	|	height="300"
+	//	|	min="0"
+	//	|	max="100"
+	//	|	value="0" 
+	//	|	majorTicksInterval="10"
+	//	|	majorTicksColor="#c4c4c4"
+	//	|	minorTicksInterval="5"
+	//	|	minorTicksColor="#c4c4c4"
+	//	|	color="black" 
+	//	|	needleColor="#c4c4c4"
+	//	|	font="normal normal normal 10pt sans-serif"
+	//	|	textIndicatorFont="normal normal normal 20pt sans-serif"
+	//	|	textIndicatorVisible="true" 
+	//	|	textIndicatorColor="#c4c4c4" 
+	//	|	majorTicksLabelPlacement="inside"|"outside"
+	//	|	noChange="true"
+	//	|	title="title"
+	//	|	scalePrecision="0"
+	//	|	textIndicatorPrecision="0"
+	//	|>
+	//	|</div>
 	
 	
 	_designWidth: 381.25,
@@ -68,7 +72,7 @@ return declare("dojox.gauges.GlossySemiCircularGauge", [GlossyCircularGaugeBase]
 		
 		if (this._gaugeBackground) {
 			this._gaugeBackground.setTransform(transform);
-			return this._gaugeBackground;
+			return;
 		}
 		this._gaugeBackground = group.createGroup();
 		this._gaugeBackground.setTransform(transform);
@@ -162,7 +166,7 @@ return declare("dojox.gauges.GlossySemiCircularGauge", [GlossyCircularGaugeBase]
 		
 		if (this._foreground) {
 			this._foreground.setTransform(transform);
-			return this._foreground;
+			return;
 		}
 		this._foreground = group.createGroup();
 		this._foreground.setTransform(transform);

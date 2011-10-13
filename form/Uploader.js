@@ -101,7 +101,7 @@ declare("dojox.form.Uploader", [uploader, Button], {
 	//		shown). Specify showInput="before" to mimic the look&feel of a
 	//		native file input element.
 	showInput: "",
-	
+
 	_nameIndex:0,
 
 	templateString: template,
@@ -114,6 +114,7 @@ declare("dojox.form.Uploader", [uploader, Button], {
 		this.inherited(arguments);
 	},
 	buildRendering: function(){
+		console.warn("buildRendering", this.id)
 		this.inherited(arguments);
 		domStyle.set(this.domNode, {
 			overflow:"hidden",
@@ -146,7 +147,12 @@ declare("dojox.form.Uploader", [uploader, Button], {
 			});
 		}
 	},
+
 	startup: function(){
+		if(this._buildInitialized){
+			return;
+		}
+		this._buildInitialized = true;
 		this._getButtonStyle(this.domNode);
 		this._setButtonStyle();
 		this.inherited(arguments);

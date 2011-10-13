@@ -1,6 +1,7 @@
-define(["dojo/_base/lang", "dojo/_base/sniff", "dojo/_base/window", "dojo/_base/config"], 
-  function(lang, has, win, config){
-/*===== 
+define(["./_base","dojo/_base/lang", "dojo/_base/sniff", "dojo/_base/window", "dojo/_base/config"],
+  function(g, lang, has, win, config){
+  //>> noBuildResolver
+/*=====
 	dojox.gfx.renderer = {
 		// summary:
 		//		This module is an AMD loader plugin that loads the appropriate graphics renderer
@@ -61,7 +62,7 @@ define(["dojo/_base/lang", "dojo/_base/sniff", "dojo/_base/window", "dojo/_base/
 				}
 			}
 
-			if (renderer === 'canvas' && config.canvasEvent !== false) {
+			if (renderer === 'canvas' && config.canvasEvents !== false) {
 				renderer = "canvasWithEvents";
 			}
 
@@ -71,7 +72,7 @@ define(["dojo/_base/lang", "dojo/_base/sniff", "dojo/_base/window", "dojo/_base/
 
 			function loadRenderer(){
 				require(["dojox/gfx/" + renderer], function(module){
-					dojox.gfx.renderer = renderer;
+					g.renderer = renderer;
 					// memorize the renderer module
 					currentRenderer = module;
 					// now load it

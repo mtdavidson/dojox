@@ -1,11 +1,15 @@
 define(["dojo/_base/declare","./AnalogIndicatorBase"],
   function(declare, AnalogIndicatorBase) { 
 
+/*=====
+	AnalogIndicatorBase = dojox.gauges.AnalogIndicatorBase;
+=====*/
+
 return declare("dojox.gauges.AnalogCircleIndicator", [AnalogIndicatorBase], {
 	// summary:
-	//		An indicator for the AnalogGauge that draws a circle. The center of the circle is positionned
-	//   on the circular gauge according to the value of the indicator. The circle has for radius the 
-	//   length of the indicator. This indicator is mainly used to draw round ticks for the scale.
+	//		An indicator for the AnalogGauge that draws a circle. The center of the circle is positioned
+	//		on the circular gauge according to the value of the indicator. The circle has for radius the 
+	//		length of the indicator. This indicator is mainly used to draw round ticks for the scale.
 	
 	
 	_getShapes: function(group){

@@ -1,9 +1,11 @@
 define([
 	"dojo/_base/declare",
+	"dojo/dom",
 	"./_Container"
-], function(declare, _Container){
+], function(declare, dom, _Container){
 	/*=====
 		declare = dojo.declare;
+		dom = dojo.dom;
 		_Container = dojox.mvc._Container;
 	=====*/
 
@@ -39,9 +41,11 @@ define([
 		// summary:
 		//		Override and save template from body.
 		postscript: function(params, srcNodeRef){
-			this.srcNodeRef = dojo.byId(srcNodeRef);
+			this.srcNodeRef = dom.byId(srcNodeRef);
 			if(this.srcNodeRef){
-				this.templateString = this.srcNodeRef.innerHTML;
+				if(this.templateString == ""){ // only overwrite templateString if it has not been set
+					this.templateString = this.srcNodeRef.innerHTML;
+				}
 				this.srcNodeRef.innerHTML = "";
 			}
 			this.inherited(arguments);
@@ -75,6 +79,10 @@ define([
 			}
 			var repeatNode = this.srcNodeRef || this.domNode;
 			repeatNode.innerHTML = insert;
+
+			// srcNodeRef is used in _createBody, so in the programmatic create case where repeatNode was set  
+			// from this.domNode we need to set srcNodeRef from repeatNode
+			this.srcNodeRef = repeatNode;
 
 			this._createBody();
 		},

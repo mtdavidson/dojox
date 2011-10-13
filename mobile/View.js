@@ -7,6 +7,7 @@ define([
 	"dojo/_base/lang",
 	"dojo/_base/sniff",
 	"dojo/_base/window",
+	"dojo/_base/Deferred",
 	"dojo/dom",
 	"dojo/dom-class",
 	"dojo/dom-geometry",
@@ -16,28 +17,32 @@ define([
 	"dijit/_Contained",
 	"dijit/_Container",
 	"dijit/_WidgetBase",
-	"./ViewController"
-], function(dojo, array, config, connect, declare, lang, has, win, dom, domClass, domGeometry, domStyle, registry, Contained, Container, WidgetBase, ViewController){
+	"./ViewController", // to load ViewController for you (no direct references)
+	"./transition"
+], function(dojo, array, config, connect, declare, lang, has, win, Deferred, dom, domClass, domGeometry, domStyle, registry, Contained, Container, WidgetBase, ViewController, transitDeferred){
 
-	var dm = lang.getObject("dojox.mobile", true);
+/*=====
+	var Contained = dijit._Contained;
+	var Container = dijit._Container;
+	var WidgetBase = dijit._WidgetBase;
+	var ViewController = dojox.mobile.ViewController;
+=====*/
 
 	// module:
 	//		dojox/mobile/View
 	// summary:
-	//		TODOC
+	//		A widget that represents a view that occupies the full screen
 
-	/*=====
-		WidgetBase = dijit._WidgetBase;
-		Container = dijit._Container;
-		Contained = dijit._Contained;
-	=====*/
-	return declare("dojox.mobile.View", [WidgetBase, Container, Contained],{
+	var dm = lang.getObject("dojox.mobile", true);
+
+	return declare("dojox.mobile.View", [WidgetBase, Container, Contained], {
 		// summary:
 		//		A widget that represents a view that occupies the full screen
 		// description:
-		//		View acts as a container for any HTML and/or widgets. An entire HTML page
-		//		can have multiple View widgets and the user can navigate through
-		//		the views back and forth without page transitions.
+		//		View acts as a container for any HTML and/or widgets. An entire
+		//		HTML page can have multiple View widgets and the user can
+		//		navigate through the views back and forth without page
+		//		transitions.
 	
 		// selected: Boolean
 		//		If true, the view is displayed at startup time.
@@ -57,27 +62,11 @@ define([
 		buildRendering: function(){
 			this.domNode = this.containerNode = this.srcNodeRef || win.doc.createElement("DIV");
 			this.domNode.className = "mblView";
-			if(config["mblAndroidWorkaround"] !== false && has('android') >= 2.2 && has('android') < 3.1){ // workaround for android screen flicker problem
-				if(has('android') < 3){ // for Android 2.2.x and 2.3.x
-					domStyle.set(this.domNode, "webkitTransform", "translate3d(0,0,0)");
-					// workaround for auto-scroll issue when focusing input fields
-					this.connect(null, "onfocus", function(e){
-						domStyle.set(this.domNode, "webkitTransform", "");
-					});
-					this.connect(null, "onblur", function(e){
-						domStyle.set(this.domNode, "webkitTransform", "translate3d(0,0,0)");
-					});
-				}else{ // for Android 3.0.x
-					if(config["mblAndroid3Workaround"] !== false){
-						domStyle.set(this.domNode, {
-							webkitBackfaceVisibility: "hidden",
-							webkitPerspective: 8000
-						});
-					}
-				}
-			}
 			this.connect(this.domNode, "webkitAnimationEnd", "onAnimationEnd");
 			this.connect(this.domNode, "webkitAnimationStart", "onAnimationStart");
+			if(!config['mblCSS3Transition']){
+			    this.connect(this.domNode, "webkitTransitionEnd", "onAnimationEnd");
+			}
 			var id = location.href.match(/#(\w+)([^\w=]|$)/) ? RegExp.$1 : null;
 	
 			this._visible = this.selected && !id || this.id == id;
@@ -126,30 +115,46 @@ define([
 		},
 	
 		resize: function(){
+			// summary:
+			//		Calls resize() of each child widget.
 			array.forEach(this.getChildren(), function(child){
 				if(child.resize){ child.resize(); }
 			});
 		},
 
 		onStartView: function(){
-			// Stub function to connect to from your application.
-			// Called only when this view is shown at startup time.
+			// summary:
+			//		Stub function to connect to from your application.
+			// description:
+			//		Called only when this view is shown at startup time.
 		},
 	
 		onBeforeTransitionIn: function(moveTo, dir, transition, context, method){
-			// Stub function to connect to from your application.
+			// summary:
+			//		Stub function to connect to from your application.
+			// description:
+			//		Called before the arriving transition occurs.
 		},
 	
 		onAfterTransitionIn: function(moveTo, dir, transition, context, method){
-			// Stub function to connect to from your application.
+			// summary:
+			//		Stub function to connect to from your application.
+			// description:
+			//		Called after the arriving transition occurs.
 		},
 	
 		onBeforeTransitionOut: function(moveTo, dir, transition, context, method){
-			// Stub function to connect to from your application.
+			// summary:
+			//		Stub function to connect to from your application.
+			// description:
+			//		Called before the leaving transition occurs.
 		},
 	
 		onAfterTransitionOut: function(moveTo, dir, transition, context, method){
-			// Stub function to connect to from your application.
+			// summary:
+			//		Stub function to connect to from your application.
+			// description:
+			//		Called after the leaving transition occurs.
 		},
 	
 		_saveState: function(moveTo, dir, transition, context, method){
@@ -169,12 +174,29 @@ define([
 				}
 			}
 		},
+		
+		_fixViewState: function(/*DomNode*/toNode){
+			// summary:
+			//		Sanity check for view transition states.
+			// description:
+			//		Sometimes uninitialization of Views fails after making view transition,
+			//		and that results in failure of subsequent view transitions.
+			//		This function does the uninitialization for all the sibling views.
+			var nodes = this.domNode.parentNode.childNodes;
+			for(var i = 0; i < nodes.length; i++){
+				var n = nodes[i];
+				if(n.nodeType === 1 && domClass.contains(n, "mblView")){
+					n.className = "mblView"; //TODO: Should remove classes one by one. This would clear user defined classes or even mblScrollableView.
+				}
+			}
+			toNode.className = "mblView"; // just in case toNode is a sibling of an ancestor.
+		},
 	
 		convertToId: function(moveTo){
 			if(typeof(moveTo) == "string"){
 				// removes a leading hash mark (#) and params if exists
 				// ex. "#bar&myParam=0003" -> "bar"
-				moveTo.match(/^#?([^&]+)/);
+				moveTo.match(/^#?([^&?]+)/);
 				return RegExp.$1;
 			}
 			return moveTo;
@@ -185,15 +207,29 @@ define([
 			// summary:
 			//		Function to perform the various types of view transitions, such as fade, slide, and flip.
 			// moveTo: String
-			//		The destination view id to transition the current view to.
+			//		The id of the transition destination view which resides in
+			//		the current page.
+			//		If the value has a hash sign ('#') before the id
+			//		(e.g. #view1) and the dojo.hash module is loaded by the user
+			//		application, the view transition updates the hash in the
+			//		browser URL so that the user can bookmark the destination
+			//		view. In this case, the user can also use the browser's
+			//		back/forward button to navigate through the views in the
+			//		browser history.
 			//		If null, transitions to a blank view.
-			//		If "#", returns immediately without transition.
+			//		If '#', returns immediately without transition.
 			// dir: Number
 			//		The transition direction. If 1, transition forward. If -1, transition backward.
 			//		For example, the slide transition slides the view from right to left when dir == 1,
 			//		and from left to right when dir == -1.
-			// transision: String
-			//		The type of transition to perform. "slide", "fade", or "flip"
+			// transition: String
+			//		A type of animated transition effect. You can choose from
+			//		the standard transition types, "slide", "fade", "flip", or
+			//		from the extended transition types, "cover", "coverv",
+			//		"dissolve", "reveal", "revealv", "scaleIn",
+			//		"scaleOut", "slidev", "swirl", "zoomIn", "zoomOut". If
+			//		"none" is specified, transition occurs immediately without
+			//		animation.
 			// context: Object
 			//		The object that the callback function will receive as "this".
 			// method: String|Function
@@ -201,8 +237,13 @@ define([
 			//		A function reference, or name of a function in context.
 			// tags:
 			//		public
+			//
 			// example:
-			//		Transitions to the blank view, and then opens another page.
+			//		Transition backward to a view whose id is "foo" with the slide animation.
+			//	|	performTransition("foo", -1, "slide");
+			//
+			// example:
+			//		Transition forward to a blank view, and then open another page.
 			//	|	performTransition(null, 1, "slide", null, function(){location.href = href;});
 			if(moveTo === "#"){ return; }
 			if(dojo.hash){
@@ -232,15 +273,21 @@ define([
 			if(!toNode){ console.log("dojox.mobile.View#performTransition: destination view not found: "+moveTo); return; }
 			toNode.style.visibility = this._aw ? "visible" : "hidden";
 			toNode.style.display = "";
+			this._fixViewState(toNode);
 			var toWidget = registry.byNode(toNode);
 			if(toWidget){
 				// Now that the target view became visible, it's time to run resize()
-				dm.resizeAll(null, toWidget);
+				if(config["mblAlwaysResizeOnTransition"] || !toWidget._resized){
+					dm.resizeAll(null, toWidget);
+					toWidget._resized = true;
+				}
 	
 				if(transition && transition != "none"){
 					// Temporarily add padding to align with the fromNode while transition
 					toWidget.containerNode.style.paddingTop = fromTop + "px";
 				}
+
+				toWidget.movedFrom = fromNode.id;
 			}
 	
 			this.onBeforeTransitionOut.apply(this, arguments);
@@ -270,7 +317,38 @@ define([
 				toNode.style.display = "none";
 				toNode.style.visibility = "visible";
 			}
-			this._doTransition(fromNode, toNode, transition, dir);
+			
+			if(dm._iw && dm.scrollable){ // Workaround for iPhone flicker issue (only when scrollable.js is loaded)
+				var ss = dm.getScreenSize();
+				// Show cover behind the view.
+				// cover's z-index is set to -10000, lower than z-index value specified in transition css.
+				win.body().appendChild(dm._iwBgCover);
+				domStyle.set(dm._iwBgCover, {
+					position: "absolute",
+					top: "0px",
+					left: "0px",
+					height: (ss.h + 1) + "px", // "+1" means the height of scrollTo(0,1)
+					width: ss.w + "px",
+					backgroundColor: domStyle.get(win.body(), "background-color"),
+					zIndex: -10000,
+					display: ""
+				});
+				// Show toNode behind the cover.
+				domStyle.set(toNode, {
+					position: "absolute",
+					zIndex: -10001,
+					visibility: "visible",
+					display: ""
+				});
+				// setTimeout seems to be necessary to avoid flicker.
+				// Also the duration of setTimeout should be long enough to avoid flicker.
+				// 0 is not effective. 50 sometimes causes flicker.
+				setTimeout(lang.hitch(this, function(){
+					this._doTransition(fromNode, toNode, transition, dir);
+				}), 80);
+			}else{
+				this._doTransition(fromNode, toNode, transition, dir);
+			}
 		},
 		_toCls: function(s){
 			// convert from transition name to corresponding class name
@@ -280,16 +358,40 @@ define([
 	
 		_doTransition: function(fromNode, toNode, transition, dir){
 			var rev = (dir == -1) ? " mblReverse" : "";
-			if(!this._aw){
+			if(dm._iw && dm.scrollable){ // Workaround for iPhone flicker issue (only when scrollable.js is loaded)
+				// Show toNode after flicker ends
+				domStyle.set(toNode, {
+					position: "",
+					zIndex: ""
+				});
+				// Remove cover
+				win.body().removeChild(dm._iwBgCover);
+			}else if(!this._aw){
 				toNode.style.display = "";
 			}
 			if(!transition || transition == "none"){
 				this.domNode.style.display = "none";
 				this.invokeCallback();
+			}else if(config['mblCSS3Transition']){
+				//get dojox/css3/transit first
+				Deferred.when(transitDeferred, lang.hitch(this, function(transit){
+					//follow the style of .mblView.mblIn in View.css
+					//need to set the toNode to absolute position
+					var toPosition = domStyle.get(toNode, "position");
+					domStyle.set(toNode, "position", "absolute");
+					Deferred.when(transit(fromNode, toNode, {transition: transition, reverse: (dir===-1)?true:false}),lang.hitch(this,function(){
+						domStyle.set(toNode, "position", toPosition);
+						this.invokeCallback();
+					}));
+				}));
 			}else{
 				var s = this._toCls(transition);
 				domClass.add(fromNode, s + " mblOut" + rev);
 				domClass.add(toNode, s + " mblIn" + rev);
+				setTimeout(function(){
+					domClass.add(fromNode, "mblTransition");
+					domClass.add(toNode, "mblTransition");
+				}, 100);
 				// set transform origin
 				var fromOrigin = "50% 50%";
 				var toOrigin = "50% 50%";
@@ -326,9 +428,10 @@ define([
 
 
 		onAnimationEnd: function(e){
-			if(e.animationName.indexOf("Out") === -1 &&
-				e.animationName.indexOf("In") === -1 &&
-				e.animationName.indexOf("Shrink") === -1){ return; }
+			var name = e.animationName || e.target.className;
+			if(name.indexOf("Out") === -1 &&
+				name.indexOf("In") === -1 &&
+				name.indexOf("Shrink") === -1){ return; }
 			var isOut = false;
 			if(domClass.contains(this.domNode, "mblOut")){
 				isOut = true;
@@ -338,7 +441,8 @@ define([
 				// Reset the temporary padding
 				this.containerNode.style.paddingTop = "";
 			}
-			if(e.animationName.indexOf("Shrink") !== -1){
+			domStyle.set(this.domNode, {webkitTransformOrigin:""});
+			if(name.indexOf("Shrink") !== -1){
 				var li = e.target;
 				li.style.display = "none";
 				domClass.remove(li, "mblCloseContent");
@@ -361,6 +465,7 @@ define([
 			if(toWidget){
 				toWidget.onAfterTransitionIn.apply(toWidget, this._arguments);
 				connect.publish("/dojox/mobile/afterTransitionIn", [toWidget].concat(this._arguments));
+				toWidget.movedFrom = undefined;
 			}
 
 			var c = this._context, m = this._method;

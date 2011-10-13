@@ -1,4 +1,6 @@
 define([
+	"dojo/_base/array", // array.forEach
+	"dijit/registry",
 	"dojo/_base/declare",
 	"dojo/_base/lang",
 	"dojo/dom-class",
@@ -7,7 +9,7 @@ define([
 	"dojo/dom-style",
 	"dijit/place",
 	"dijit/_WidgetBase"
-], function(declare, lang, domClass, domConstruct, domGeometry, domStyle, place, WidgetBase){
+], function(array, registry, declare, lang, domClass, domConstruct, domGeometry, domStyle, place, WidgetBase){
 
 	/*=====
 		WidgetBase = dijit._WidgetBase;
@@ -36,6 +38,7 @@ define([
 			//			* after: places drop down after the aroundNode
 			//			* above-centered: drop down goes above aroundNode
 			//			* below-centered: drop down goes below aroundNode
+			var domNode = this.domNode;
 			var connectorClasses = {
 				"MRM": "mblTooltipAfter",
 				"MLM": "mblTooltipBefore",
@@ -50,16 +53,24 @@ define([
 				"BRB": "mblTooltipAfter",
 				"BLB": "mblTooltipBefore"
 			};
-			domClass.remove(this.domNode, ["mblTooltipAfter","mblTooltipBefore","mblTooltipBelow","mblTooltipAbove"]);
-			var best = place.around(this.domNode, aroundNode, positions || ['below-centered', 'above-centered', 'after', 'before'], this.isLeftToRight());
+			domClass.remove(domNode, ["mblTooltipAfter","mblTooltipBefore","mblTooltipBelow","mblTooltipAbove"]);
+			array.forEach(registry.findWidgets(domNode), function(widget){
+				if(widget.height == "auto" && typeof widget.resize == "function"){
+					if(!widget.fixedFooterHeight){
+						widget.fixedFooterHeight = domGeometry.getPadBorderExtents(domNode).b;
+					}
+					widget.resize();
+				}
+			});
+			var best = place.around(domNode, aroundNode, positions || ['below-centered', 'above-centered', 'after', 'before'], this.isLeftToRight());
 			var connectorClass = connectorClasses[best.corner + best.aroundCorner.charAt(0)] || '';
-			domClass.add(this.domNode, connectorClass);
+			domClass.add(domNode, connectorClass);
 			var pos = domGeometry.position(aroundNode, true);
 			domStyle.set(this.anchor, (connectorClass == "mblTooltipAbove" || connectorClass == "mblTooltipBelow")
 				? { top: "", left: Math.max(0, pos.x - best.x + (pos.w >> 1) - (this.arrow.offsetWidth >> 1)) + "px" }
 				: { left: "", top: Math.max(0, pos.y - best.y + (pos.h >> 1) - (this.arrow.offsetHeight >> 1)) + "px" }
 			);
-			domClass.replace(this.domNode, "mblTooltipVisible", "mblTooltipHidden");
+			domClass.replace(domNode, "mblTooltipVisible", "mblTooltipHidden");
 			this.resize = lang.hitch(this, "show", aroundNode, positions); // orientation changes
 			return best;
 		},

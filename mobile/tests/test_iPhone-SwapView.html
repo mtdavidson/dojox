@@ -28,7 +28,7 @@
 			dojo.require("dojox.mobile.SwapView");
 		</script>
 	</head>
-	<body>
+	<body style="visibility:hidden;">
 		<div id="foo" dojoType="dojox.mobile.SwapView" selected="true">
 			<h2 dojoType="dojox.mobile.RoundRectCategory">Page flipping demo</h2>
 
@@ -40,6 +40,7 @@
 		</div>
 
 		<div id="bar" dojoType="dojox.mobile.SwapView">
+			<h1 dojoType="dojox.mobile.Heading">Search Result</h1>
 			<ul dojoType="dojox.mobile.RoundRectList">
 				<li class="mblVariableHeight" dojoType="dojox.mobile.ListItem" style="font-size:10px">
 					1. <a href="#" class="lnk">Dojo: Traditional Karate-do Spirit</a><br>

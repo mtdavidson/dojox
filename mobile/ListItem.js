@@ -10,35 +10,95 @@ define([
 	"./_ItemBase",
 	"./TransitionEvent"
 ], function(array, connect, declare, lang, domClass, domConstruct, has, common, ItemBase, TransitionEvent){
+
+/*=====
+	var ItemBase = dojox.mobile._ItemBase;
+=====*/
+
 	// module:
 	//		dojox/mobile/ListItem
 	// summary:
-	//		TODOC
+	//		An item of either RoundRectList or EdgeToEdgeList.
 
-	/*=====
-		ItemBase = dojox.mobile._ItemBase;
-	=====*/
 	return declare("dojox.mobile.ListItem", ItemBase, {
-		//icon: "", // inherit from _ItemBase
-		//label: "", // inherit from _ItemBase
+		// summary:
+		//		An item of either RoundRectList or EdgeToEdgeList.
+		// description:
+		//		ListItem represents an item of either RoundRectList or
+		//		EdgeToEdgeList. There are three ways to move to a different
+		//		view, moveTo, href, and url. You can choose only one of them.
+
+		// rightText: String
+		//		A right-aligned text to display on the item.
 		rightText: "",
-		rightIcon2: "",
+
+		// rightIcon: String
+		//		An icon to display at the right hand side of the item. The value
+		//		can be either a path for an image file or a class name of a DOM
+		//		button.
 		rightIcon: "",
 
+		// rightIcon2: String
+		//		An icon to display at the left of the rightIcon. The value can
+		//		be either a path for an image file or a class name of a DOM
+		//		button.
+		rightIcon2: "",
+
+
+		// anchorLabel: Boolean
+		//		If true, the label text becomes a clickable anchor text. When
+		//		the user clicks on the text, the onAnchorLabelClicked handler is
+		//		called. You can override or connect to the handler and implement
+		//		any action. The handler has no default action.
 		anchorLabel: false,
+
+		// noArrow: Boolean
+		//		If true, the right hand side arrow is not displayed.
 		noArrow: false,
+
+		// selected: Boolean
+		//		If true, the item is highlighted to indicate it is selected.
 		selected: false,
+
+		// checked: Boolean
+		//		If true, a check mark is displayed at the right of the item.
 		checked: false,
+
+		// arrowClass: String
+		//		An icon to display as an arrow. The value can be either a path
+		//		for an image file or a class name of a DOM button.
 		arrowClass: "mblDomButtonArrow",
+
+		// checkClass: String
+		//		An icon to display as a check mark. The value can be either a
+		//		path for an image file or a class name of a DOM button.
 		checkClass: "mblDomButtonCheck",
+
+		// variableHeight: Boolean
+		//		If true, the height of the item varies according to its
+		//		content. In dojo 1.6 or older, the "mblVariableHeight" class was
+		//		used for this purpose. In dojo 1.7, adding the mblVariableHeight
+		//		class still works for backward compatibility.
 		variableHeight: false,
 
+
+		// rightIconTitle: String
+		//		An alt text for the right icon.
 		rightIconTitle: "",
+
+		// rightIcon2Title: String
+		//		An alt text for the right icon2.
 		rightIcon2Title: "",
 
-		// for backward compatibility
+
+		// btnClass: String
+		//		Deprecated. For backward compatibility.
 		btnClass: "",
+
+		// btnClass2: String
+		//		Deprecated. For backward compatibility.
 		btnClass2: "",
+
 	
 		postMixInProperties: function(){
 			// for backward compatibility
@@ -84,46 +144,36 @@ define([
 			a.className = "mblListItemAnchor";
 			this.domNode.appendChild(a);
 			a.appendChild(box);
-
-			// right text
-			this.rightTextNode = domConstruct.create("DIV", {className:"mblListItemRightText"}, a, "first");
-
-			// right icon2
-			this.rightIcon2Node = domConstruct.create("DIV", {className:"mblListItemRightIcon2"}, a, "first");
-
-			// right icon
-			this.rightIconNode = domConstruct.create("DIV", {className:"mblListItemRightIcon"}, a, "first");
-
-			// icon
-			this.iconNode = domConstruct.create("DIV", {className:"mblListItemIcon"}, a, "first");
 		},
 
 		startup: function(){
 			if(this._started){ return; }
 			this.inheritParams();
 			var parent = this.getParent();
-			if(this.moveTo || this.href || this.url || this.clickable){
-				this.connect(this.anchorNode, "onclick", "onClick");
+			if(this.moveTo || this.href || this.url || this.clickable || (parent && parent.select)){
+				this._onClickHandle = this.connect(this.anchorNode, "onclick", "onClick");
 			}
 			this.setArrow();
-			if(parent && parent.select){
-				this.connect(this.anchorNode, "onclick", "onClick");
-			}
 
 			if(domClass.contains(this.domNode, "mblVariableHeight")){
 				this.variableHeight = true;
 			}
 			if(this.variableHeight){
 				domClass.add(this.domNode, "mblVariableHeight");
-				connect.subscribe("/dojox/mobile/resizeAll", this, "layoutVariableHeight");
 				setTimeout(lang.hitch(this, "layoutVariableHeight"));
 			}
 
-			this.set("icon", this.icon);
+			this.set("icon", this.icon); // _setIconAttr may be called twice but this is necessary for offline instantiation
 			if(!this.checked && this.checkClass.indexOf(',') !== -1){
 				this.set("checked", this.checked);
 			}
 			this.inherited(arguments);
+		},
+
+		resize: function(){
+			if(this.variableHeight){
+				this.layoutVariableHeight();
+			}
 		},
 
 		onClick: function(e){
@@ -154,6 +204,10 @@ define([
 			}
 			this.select();
 
+			if (this.href && this.hrefTarget) {
+				common.openWindow(this.href, this.hrefTarget);
+				return;
+			}
 			var transOpts;
 			if(this.moveTo || this.href || this.url || this.scene){
 				transOpts = {moveTo: this.moveTo, href: this.href, url: this.url, scene: this.scene, transition: this.transition, transitionDir: this.transitionDir};
@@ -167,11 +221,9 @@ define([
 			}
 		},
 	
-		deselect: function(){
-			domClass.remove(this.domNode, "mblItemSelected");
-		},
-	
 		select: function(){
+			// summary:
+			//		Makes this widget in the selected state.
 			var parent = this.getParent();
 			if(parent.stateful){
 				parent.deselectAll();
@@ -184,24 +236,37 @@ define([
 			domClass.add(this.domNode, "mblItemSelected");
 		},
 	
+		deselect: function(){
+			// summary:
+			//		Makes this widget in the deselected state.
+			domClass.remove(this.domNode, "mblItemSelected");
+		},
+	
 		onAnchorLabelClicked: function(e){
-			// Stub function to connect to from your application.
+			// summary:
+			//		Stub function to connect to from your application.
 		},
 
-		layoutVariableHeight: function(e){
+		layoutVariableHeight: function(){
 			var h = this.anchorNode.offsetHeight;
+			if(h === this.anchorNodeHeight){ return; }
+			this.anchorNodeHeight = h;
 			array.forEach([
 					this.rightTextNode,
 					this.rightIcon2Node,
 					this.rightIconNode,
 					this.iconNode
 				], function(n){
-					var t = Math.round((h - n.offsetHeight) / 2);
-					n.style.marginTop = t + "px";
+					if(n){
+						var t = Math.round((h - n.offsetHeight) / 2);
+						n.style.marginTop = t + "px";
+					}
 				});
 		},
 
 		setArrow: function(){
+			// summary:
+			//		Sets the arrow icon if necessary.
 			if(this.checked){ return; }
 			var c = "";
 			var parent = this.getParent();
@@ -219,7 +284,14 @@ define([
 			if(!this.getParent()){ return; } // icon may be invalid because inheritParams is not called yet
 			this.icon = icon;
 			var a = this.anchorNode;
-			domConstruct.empty(this.iconNode);
+			if(!this.iconNode){
+				if(icon){
+					var ref = this.rightIconNode || this.rightIcon2Node || this.rightTextNode || this.box;
+					this.iconNode = domConstruct.create("DIV", {className:"mblListItemIcon"}, ref, "before");
+				}
+			}else{
+				domConstruct.empty(this.iconNode);
+			}
 			if(icon && icon !== "none"){
 				common.createIcon(icon, this.iconPos, null, this.alt, this.iconNode);
 				if(this.iconPos){
@@ -233,7 +305,7 @@ define([
 	
 		_setCheckedAttr: function(/*Boolean*/checked){
 			var parent = this.getParent();
-			if(parent.select === "single" && checked){
+			if(parent && parent.select === "single" && checked){
 				array.forEach(parent.getChildren(), function(child){
 					child.set("checked", false);
 				});
@@ -249,20 +321,28 @@ define([
 			}
 
 			domClass.toggle(this.domNode, "mblListItemChecked", checked);
-			if(this.checked !== checked){
-				this.getParent().onCheckStateChanged(this, checked);
+			if(parent && this.checked !== checked){
+				parent.onCheckStateChanged(this, checked);
 			}
 			this.checked = checked;
 		},
 	
 		_setRightTextAttr: function(/*String*/text){
+			if(!this.rightTextNode){
+				this.rightTextNode = domConstruct.create("DIV", {className:"mblListItemRightText"}, this.box, "before");
+			}
 			this.rightText = text;
 			this.rightTextNode.innerHTML = this._cv ? this._cv(text) : text;
 		},
 	
 		_setRightIconAttr: function(/*String*/icon){
+			if(!this.rightIconNode){
+				var ref = this.rightIcon2Node || this.rightTextNode || this.box;
+				this.rightIconNode = domConstruct.create("DIV", {className:"mblListItemRightIcon"}, ref, "before");
+			}else{
+				domConstruct.empty(this.rightIconNode);
+			}
 			this.rightIcon = icon;
-			domConstruct.empty(this.rightIconNode);
 			var arr = (icon || "").split(/,/);
 			if(arr.length === 1){
 				common.createIcon(icon, null, null, this.rightIconTitle, this.rightIconNode);
@@ -273,8 +353,13 @@ define([
 		},
 	
 		_setRightIcon2Attr: function(/*String*/icon){
+			if(!this.rightIcon2Node){
+				var ref = this.rightTextNode || this.box;
+				this.rightIcon2Node = domConstruct.create("DIV", {className:"mblListItemRightIcon2"}, ref, "before");
+			}else{
+				domConstruct.empty(this.rightIcon2Node);
+			}
 			this.rightIcon2 = icon;
-			domConstruct.empty(this.rightIcon2Node);
 			common.createIcon(icon, null, null, this.rightIcon2Title, this.rightIcon2Node);
 		},
 	

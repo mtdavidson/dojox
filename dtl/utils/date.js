@@ -1,18 +1,15 @@
 define([
-	"dojo/_base/kernel",
 	"dojo/_base/lang",
 	"dojox/date/php",
 	"../_base"
-], function(dojo,lang,ddp,dd){
+], function(lang,ddp,dd){
 	/*=====
 		ddp = dojox.data.php;
 		dd = dojox.dtl;
 	=====*/
-	lang.getObject("dtl.utils.date", true, dojox);
+	lang.getObject("dojox.dtl.utils.date", true);
 
-	dd.utils.date.DateFormat = function(/*String*/ format){
-		ddp.DateFormat.call(this, format);
-	}
+	dd.utils.date.DateFormat = ddp.DateFormat;
 	lang.extend(dd.utils.date.DateFormat, ddp.DateFormat.prototype, {
 		f: function(){
 			// summary:

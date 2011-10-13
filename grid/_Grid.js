@@ -151,7 +151,7 @@ define([
 	}
 	=====*/
 
-	declare('dojox.grid._Grid',
+	var _Grid = declare('dojox.grid._Grid',
 		[ _Widget, _TemplatedMixin, _Events ],
 		{
 		// summary:
@@ -401,14 +401,13 @@ define([
 			// Fixes IE domNode leak
 			delete this._click;
 
-			this.edit.destroy();
-			delete this.edit;
-
-			this.views.destroyViews();
 			if(this.scroller){
 				this.scroller.destroy();
 				delete this.scroller;
 			}
+			this.edit.destroy();
+			delete this.edit;
+			this.views.destroyViews();
 			if(this.focus){
 				this.focus.destroy();
 				delete this.focus;
@@ -1282,7 +1281,7 @@ define([
 
 	});
 
-	dojox.grid._Grid.markupFactory = function(props, node, ctor, cellFunc){
+	_Grid.markupFactory = function(props, node, ctor, cellFunc){
 		var widthFromAttr = function(n){
 			var w = html.attr(n, "width")||"auto";
 			if((w != "auto")&&(w.slice(-2) != "em")&&(w.slice(-1) != "%")){
@@ -1387,6 +1386,6 @@ define([
 		return new ctor(props, node);
 	};
 
-	return dojox.grid._Grid;
+	return _Grid;
 
 });

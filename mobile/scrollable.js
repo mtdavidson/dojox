@@ -1,5 +1,10 @@
 //>>includeStart("standaloneScrollable", kwArgs.standaloneScrollable);
-if(typeof dojo === "undefined"){
+
+// The code block surrounded by the includeStart/End pragma is to simulate
+// several dojo APIs that are used in this module for non-dojo applications.
+// For dojo applications, this code block is removed by the build tool.
+
+if(typeof define === "undefined"){ // assumes dojo.js is not loaded
 	dojo = {doc:document, global:window};
 	dojox = {mobile:{}};
 
@@ -10,6 +15,9 @@ if(typeof dojo === "undefined"){
 		}
 		if(name === "android"){
 			return parseFloat(ua.split("Android ")[1]) || undefined;
+		}
+		if(name === "iphone"){
+			return ua.match(/(iPhone|iPod|iPad)/);
 		}
 		if(name === "ie"){
 			return parseFloat(ua.split("MSIE ")[1]) || undefined;
@@ -252,8 +260,20 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 				}));
 				this._sz = this.getScreenSize();
 			}
-		}
 
+			// Creation of keyframes takes a little time. If they are created
+			// in a lazy manner, a slight delay is noticeable when you start
+			// scrolling for the first time. This is to create keyframes up front.
+			for(var i = 0; i < 3; i++){
+				this.setKeyframes(null, null, i);
+			}
+		}
+		// Workaround for iPhone flicker issue
+		if(has('iphone')){
+			domStyle.set(this.containerNode, "webkitTransform", "translate3d(0,0,0)");
+		}
+		
+		this._speed = {x:0, y:0};
 		this._appFooterHeight = 0;
 		if(this.isTopLevel() && !this.noResize){
 			this.resize();
@@ -279,7 +299,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.findDisp = function(/*DomNode*/node){
-		// Find the currently displayed view node from my sibling nodes.
+		// summary:
+		//		Finds the currently displayed view node from my sibling nodes.
 		var nodes = node.parentNode.childNodes;
 		for(var i = 0; i < nodes.length; i++){
 			var n = nodes[i];
@@ -291,6 +312,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.getScreenSize = function(){
+		// summary:
+		//		Returns the dimensions of the browser window.
 		return {
 			h: win.global.innerHeight||win.doc.documentElement.clientHeight||win.doc.documentElement.offsetHeight,
 			w: win.global.innerWidth||win.doc.documentElement.clientWidth||win.doc.documentElement.offsetWidth
@@ -298,8 +321,12 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.isKeyboardShown = function(e){
-		// indirectly detects whether a virtual keyboard is shown or not
-		// by examining the screen size.
+		// summary:
+		//		Internal function for android workaround.
+		// description:
+		//		Returns true if a virtual keyboard is shown.
+		//		Indirectly detects whether a virtual keyboard is shown or not by
+		//		examining the screen size.
 		// TODO: need more reliable detection logic
 		if(!this._sz){ return false; }
 		var sz = this.getScreenSize();
@@ -307,6 +334,11 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.disableScroll = function(/*Boolean*/v){
+		// summary:
+		//		Internal function for android workaround.
+		// description:
+		//		Disables the touch scrolling and enables the browser's default
+		//		scrolling.
 		if(this.disableTouchScroll === v || this.domNode.style.display === "none"){ return; }
 		this.disableTouchScroll = v;
 		this.scrollBar = !v;
@@ -319,7 +351,7 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 		if(v){
 			if(!c.style.webkitTransform){
 				// stop animation when soft keyborad is shown before animation ends.
-				// TODO there might be the better way to wait for animation ending.
+				// TODO: there might be a better way to wait for animation ending.
 				this.stopAnimation();
 				this.toTopLeft();
 			}
@@ -359,10 +391,14 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 			for(var i = 0; i < tags.length; i++){
 				tags[i].blur && tags[i].blur();
 			}
+			// Call dojox.mobile.resizeAll if exists.
+			dm.resizeAll && dm.resizeAll();
 		}
 	};
 
 	this.onScreenSizeChanged = function(e){
+		// summary:
+		//		Internal function for android workaround.
 		var sz = this.getScreenSize();
 		if(sz.w * sz.h > this._sz.w * this._sz.h){
 			this._sz = sz; // update the screen size
@@ -371,6 +407,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.toTransform = function(e){
+		// summary:
+		//		Internal function for android workaround.
 		var c = this.containerNode;
 		if(c.offsetTop === 0 && c.offsetLeft === 0 || !c._webkitTransform){ return; }
 		domStyle.set(c, {
@@ -382,6 +420,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.toTopLeft = function(){
+		// summary:
+		//		Internal function for android workaround.
 		var c = this.containerNode;
 		if(!c.style.webkitTransform){ return; } // already converted to top/left
 		c._webkitTransform = c.style.webkitTransform;
@@ -394,6 +434,17 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 	
 	this.resize = function(e){
+		// summary:
+		//		Adjusts the height of the widget.
+		// description:
+		//		If the height property is 'inherit', the height is inherited
+		//		from its offset parent. If 'auto', the content height, which
+		//		could be smaller than the entire screen height, is used. If an
+		//		explicit height value (ex. "300px"), it is used as the new
+		//		height. If nothing is specified as the height property, from the
+		//		current top position of the widget to the bottom of the screen
+		//		will be the new height.
+
 		// moved from init() to support dynamically added fixed bars
 		this._appFooterHeight = (this.fixedFooterHeight && !this.isLocalFooter) ?
 			this.fixedFooterHeight : 0;
@@ -410,13 +461,26 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 		}
 
 		// adjust the height of this view
-		var h;
-		var dh = this.getScreenSize().h - top - this._appFooterHeight; // default height
+		var	h,
+			screenHeight = this.getScreenSize().h,
+			dh = screenHeight - top - this._appFooterHeight; // default height
 		if(this.height === "inherit"){
 			if(this.domNode.offsetParent){
 				h = this.domNode.offsetParent.offsetHeight + "px";
 			}
 		}else if(this.height === "auto"){
+			var parent = this.domNode.offsetParent;
+			if(parent){
+				this.domNode.style.height = "0px";
+				var	parentRect = parent.getBoundingClientRect(),
+					scrollableRect = this.domNode.getBoundingClientRect(),
+					contentBottom = parentRect.bottom - this._appFooterHeight;
+				if(scrollableRect.bottom >= contentBottom){ // use entire screen
+					dh = screenHeight - (scrollableRect.top - parentRect.top) - this._appFooterHeight;
+				}else{ // stretch to fill predefined area
+					dh = contentBottom - scrollableRect.bottom;
+				}
+			}
 			// content could be smaller than entire screen height
 			var contentHeight = Math.max(this.domNode.scrollHeight, this.containerNode.scrollHeight);
 			h = (contentHeight ? Math.min(contentHeight, dh) : dh) + "px";
@@ -426,7 +490,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 		if(!h){
 			h = dh + "px";
 		}
-		if(h.charAt(0) !== "-"){ // to ensure that h is not negative (e.g. "-10px")
+		if(h.charAt(0) !== "-" && // to ensure that h is not negative (e.g. "-10px")
+			h !== "default"){
 			this.domNode.style.height = h;
 		}
 
@@ -439,9 +504,18 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.onFlickAnimationEnd = function(e){
-		if(this._scrollBarNodeV){ this._scrollBarNodeV.className = ""; }
-		if(this._scrollBarNodeH){ this._scrollBarNodeH.className = ""; }
-		if(e && e.animationName && e.animationName.indexOf("scrollableViewScroll2") === -1){ return; }
+		var an = e && e.animationName;
+		if(an && an.indexOf("scrollableViewScroll2") === -1){
+			if(an.indexOf("scrollableViewScroll0") !== -1){ // scrollBarV
+				domClass.remove(this._scrollBarNodeV, "mblScrollableScrollTo0");
+			}else if(an.indexOf("scrollableViewScroll1") !== -1){ // scrollBarH
+				domClass.remove(this._scrollBarNodeH, "mblScrollableScrollTo1");
+			}else{ // fade or others
+				if(this._scrollBarNodeV){ this._scrollBarNodeV.className = ""; }
+				if(this._scrollBarNodeH){ this._scrollBarNodeH.className = ""; }
+			}
+			return;
+		}
 		if(e && e.srcElement){
 			event.stop(e);
 		}
@@ -481,6 +555,9 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 		this._aborted = false;
 		if(domClass.contains(this.containerNode, "mblScrollableScrollTo2")){
 			this.abort();
+		}else{ // reset scrollbar class especially for reseting fade-out animation
+			if(this._scrollBarNodeV){ this._scrollBarNodeV.className = ""; }
+			if(this._scrollBarNodeH){ this._scrollBarNodeH.className = ""; }
 		}
 		if(this._aw){ this.toTransform(e); } // android workaround
 		this.touchStartX = e.touches ? e.touches[0].pageX : e.clientX;
@@ -757,6 +834,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.scrollTo = function(/*Object*/to, /*Boolean?*/doNotMoveScrollBar, /*DomNode?*/node){ // to: {x, y}
+		// summary:
+		//		Scrolls to the given position.
 		var s = (node || this.containerNode).style;
 		if(has("webkit")){
 			s.webkitTransform = this.makeTranslateStr(to);
@@ -774,6 +853,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.slideTo = function(/*Object*/to, /*Number*/duration, /*String*/easing){
+		// summary:
+		//		Scrolls to the given position with slide animation.
 		this._runSlideAnimation(this.getPos(), to, duration, easing, this.containerNode, 2);
 		this.slideScrollBarTo(to, duration, easing);
 	};
@@ -1010,10 +1091,11 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 			if(!bar){ return; }
 			var props = {};
 			props[v ? "top" : "left"] = hd + 4 + "px"; // +4 is for top or left margin
-			props[v ? "height" : "width"] = d - 8 + "px";
+			var t = (d - 8) <= 0 ? 1 : d - 8;
+			props[v ? "height" : "width"] = t + "px";
 			domStyle.set(wrapper, props);
 			var l = Math.round(d * d / c); // scroll bar length
-			l = Math.min(Math.max(l - 8, 5), d - 8); // -8 is for margin for both ends
+			l = Math.min(Math.max(l - 8, 5), t); // -8 is for margin for both ends
 			bar.style[v ? "height" : "width"] = l + "px";
 			domStyle.set(bar, {"opacity": 0.6});
 		};

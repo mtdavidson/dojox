@@ -23,6 +23,7 @@
 		.mblIconArea {
 			height: 90px;
 			width: 90px;
+			color: white;
 		}
 		</style>
 		<script type="text/javascript" src="../../../dojo/dojo.js" djConfig="parseOnLoad: true, mblAlwaysHideAddressBar: true"></script>
@@ -35,7 +36,7 @@
 			dojo.require("dojox.mobile.SwapView");
 		</script>
 	</head>
-	<body>
+	<body style="visibility:hidden;">
 		<div id="foo" dojoType="dojox.mobile.SwapView" selected="true">
 			<h2 dojoType="dojox.mobile.RoundRectCategory">Page flipping demo</h2>
 			<ul dojoType="dojox.mobile.RoundRectList">

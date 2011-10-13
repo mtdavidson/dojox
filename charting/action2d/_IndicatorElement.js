@@ -1,6 +1,6 @@
-define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare", "../Element", "../plot2d/common", 
+define(["dojo/_base/lang", "dojo/_base/declare", "../Element", "../plot2d/common", 
     "../axis2d/common", "dojox/gfx"], 
-	function(dojo, lang, declare, Element, dcpc, dcac, gfx){ 
+	function(lang, declare, Element, dcpc, dcac, gfx){ 
 
 	// all the code below should be removed when http://trac.dojotoolkit.org/ticket/11299 will be available
 	var getBoundingBox = function(shape){
@@ -12,7 +12,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare", "../Elemen
 			// try/catch the FF native getBBox error. cheaper than walking up in the DOM
 			// hierarchy to check the conditions (bench show /10 )
 			try {
-				return s.rawNode.getBBox();
+				return lang.mixin({}, s.rawNode.getBBox());
 			}catch (e){
 				return null;
 			}
@@ -32,7 +32,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare", "../Elemen
 			return sz;
 		}else if(c.indexOf("silverlight")!=-1){
 			var bb = {width: s.rawNode.actualWidth, height: s.rawNode.actualHeight};
-			return computeLocation(s, bb, 0.75	);			
+			return computeLocation(s, bb, 0.75);
 		}else if(s.getTextWidth){
 			// canvas
 			var w = s.getTextWidth();
@@ -40,7 +40,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare", "../Elemen
 			var fz = font ? font.size : gfx.defaultFont.size;
 			var h = gfx.normalizedLength(fz);
 			sz = {width: w, height: h};
-			computeLocation(s, sz,0.75);
+			computeLocation(s, sz, 0.75);
 			return sz;
 		}
 	};
@@ -63,7 +63,7 @@ define(["dojo/_base/kernel", "dojo/_base/lang", "dojo/_base/declare", "../Elemen
 		return sz;
 	};
 
-	return declare(Element, {
+	return declare("dojox.charting.action2d._IndicatorElement",[Element], {
 		//	summary:
 		//		Internal element used by indicator actions.
 		//	tags:

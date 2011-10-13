@@ -4,12 +4,14 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 	function(lang, arr, declare, Element, PlotEvents, dc, da, g, m, df, du){
 
 	/*=====
+	var Element = dojox.charting.Element;
+	var PlotEvents = dojox.charting.plot2d._PlotEvents;
 	dojo.declare("dojox.charting.plot2d.__PieCtorArgs", dojox.charting.plot2d.__DefaultCtorArgs, {
 		//	summary:
 		//		Specialized keyword arguments object for use in defining parameters on a Pie chart.
 	
 		//	labels: Boolean?
-		//		Whether or not to draw labels within each pie slice.  Default is true.
+		//		Whether or not to draw labels for each pie slice.  Default is true.
 		labels:			true,
 	
 		//	ticks: Boolean?
@@ -29,8 +31,8 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 		labelOffset:	20,
 	
 		//	labelStyle: String?
-		//		Options as to where to draw labels.  Values include "default", "rows", and "auto". Default is "default".
-		labelStyle:		"default",	// default/rows/auto
+		//		Options as to where to draw labels.  Values include "default", and "columns".	Default is "default".
+		labelStyle:		"default",	// default/columns
 	
 		//	htmlLabels: Boolean?
 		//		Whether or not to use HTML to render slice labels. Default is true.
@@ -56,7 +58,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 
 	var FUDGE_FACTOR = 0.2; // use to overlap fans
 
-	return declare("dojox.charting.plot2d.Pie", [dojox.charting.Element, dojox.charting.plot2d._PlotEvents], {
+	return declare("dojox.charting.plot2d.Pie", [Element, PlotEvents], {
 		//	summary:
 		//		The plot that represents a typical pie chart.
 		defaultParams: {
@@ -65,7 +67,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 			fixed:			true,
 			precision:		1,
 			labelOffset:	20,
-			labelStyle:		"default",	// default/rows/auto/columns
+			labelStyle:		"default",	// default/columns
 			htmlLabels:		true,		// use HTML to draw labels
 			radGrad:        "native",	// or "linear", or "fan"
 			fanSize:		5,			// maximum fan size in degrees

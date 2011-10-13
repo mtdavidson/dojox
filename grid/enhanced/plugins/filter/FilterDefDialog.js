@@ -26,7 +26,7 @@ define([
 	"dijit/_WidgetsInTemplateMixin",
 	"dijit/focus",
 	"dojox/html/metrics",
-	"dijit/_base/manager",
+	"dijit/a11y",
 	"dijit/Tooltip",
 	"dijit/form/Select",
 	"dijit/form/RadioButton",
@@ -34,7 +34,7 @@ define([
 	"../../../cells/dijit"
 ], function(declare, array, connect, lang, event, html, has, cache, keys, string, win, dateLocale, 
 	FilterBuilder, Dialog, ComboBox, TextBox, NumberTextBox, DateTextBox, TimeTextBox, Button, 
-	AccordionContainer, ContentPane, _Widget, _TemplatedMixin, _WidgetsInTemplateMixin, dijitFocus, metrics, dijit){
+	AccordionContainer, ContentPane, _Widget, _TemplatedMixin, _WidgetsInTemplateMixin, dijitFocus, metrics, dijitA11y){
 		
 var _tabIdxes = {
 		// summary:
@@ -1099,7 +1099,9 @@ var FilterDefDialog = declare("dojox.grid.enhanced.plugins.filter.FilterDefDialo
 	closeDialog: function(){
 		// summary:
 		//		Close the filter definition dialog.
-		this._defPane.hide();
+		if(this._defPane.open){
+			this._defPane.hide();
+		}
 	},
 	onFilter: function(e){
 		// summary:
@@ -1144,7 +1146,7 @@ var FilterDefDialog = declare("dojox.grid.enhanced.plugins.filter.FilterDefDialo
 		// cbox:
 		//		Current visible criteria box
 		if(!has('ff')){
-			var elems = dijit._getTabNavigable(html.byId(cbox.domNode));
+			var elems = dijitA11y._getTabNavigable(html.byId(cbox.domNode));
 			dijitFocus.focus(elems.lowest || elems.first);
 		}else{
 			var dp = this._defPane;
@@ -1176,23 +1178,24 @@ var FilterDefDialog = declare("dojox.grid.enhanced.plugins.filter.FilterDefDialo
 		}else if(this._criteriasChanged){
 			this.filterDefPane._relSelect.set("value", this._relOpCls === "logicall" ? "0" : "1");
 			this._criteriasChanged = false;
-			var needNewCBox = sc.length > cbs.length;
-			this.addCriteriaBoxes(sc.length - cbs.length);
+			var needNewCBox = sc.length > cbs.length ? sc.length - cbs.length : 0;
+			this.addCriteriaBoxes(needNewCBox);
 			this.removeCriteriaBoxes(cbs.length - sc.length);
 			this.filterDefPane._clearFilterBtn.set("disabled", false);
-			if(needNewCBox){
-				array.forEach(sc, function(c, i){
-					var handle = connect.connect(this, "onRendered", function(cbox){
-						if(cbox == cbs[i]){
+			for(i = 0; i < cbs.length - needNewCBox; ++i){
+				cbs[i].load(sc[i]);
+			}
+			if(needNewCBox > 0){
+				var handled = [], handle = connect.connect(this, "onRendered", function(cbox){
+					var i = array.indexOf(cbs, cbox);
+					if(!handled[i]){
+						handled[i] = true;
+						if(--needNewCBox === 0){
 							connect.disconnect(handle);
-							cbox.load(c);
 						}
-					});
-				}, this);
-			}else{
-				for(i = 0; i < sc.length; ++i){
-					cbs[i].load(sc[i]);
-				}
+						cbox.load(sc[i]);
+					}
+				});
 			}
 		}
 		//Since we're allowed to remove cboxes when the definition pane is not shown,

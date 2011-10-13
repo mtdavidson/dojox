@@ -25,6 +25,17 @@ define([
 	"./View",
 	"require"
 ], function(array, config, connect, bfx, lang, has, win, domClass, domConstruct, domStyle, fx, easing, ready, uacss, registry, xfx, flip, EdgeToEdgeList, IconContainer, RoundRect, RoundRectList, ScrollableView, Switch, View, require){
+
+/*=====
+	var EdgeToEdgeList = dojox.mobile.EdgeToEdgeList;
+	var IconContainer = dojox.mobile.IconContainer;
+	var RoundRect = dojox.mobile.RoundRect;
+	var RoundRectList = dojox.mobile.RoundRectList;
+	var ScrollableView = dojox.mobile.ScrollableView;
+	var Switch = dojox.mobile.Switch;
+	var View = dojox.mobile.View;
+=====*/
+
 	// module:
 	//		dojox/mobile/compat
 	// summary:
@@ -119,7 +130,7 @@ define([
 						this.invokeCallback();
 					});
 					anim.play();
-				}else if(transition == "flip" || transition == "flip2"){
+				}else if(transition == "flip"){
 					anim = xfx.flip({
 						node: fromNode,
 						dir: "right",
@@ -162,14 +173,14 @@ define([
 				dm.currentView = registry.byNode(toNode);
 			},
 		
-			wakeUp: function(node){
-			// summary:
-			//		Function to force IE to redraw a node since its layout code tends to misrender
-			//		in partial draws.
-			//	node:
-			//		The node to forcibly redraw.
-			// tags:
-			//		public
+			wakeUp: function(/*DomNode*/node){
+				// summary:
+				//		Function to force IE to redraw a node since its layout
+				//		code tends to misrender in partial draws.
+				// node: DomNode
+				//		The node to forcibly redraw.
+				// tags:
+				//		public
 				if(has("ie") && !node._wokeup){
 					node._wokeup = true;
 					var disp = node.style.display;
@@ -239,8 +250,8 @@ define([
 			lang.extend(RoundRect, {
 				buildRendering: function(){
 					// summary:
-					//		Function to simulate the borderRadius appearance on IE, since
-					//		IE does not support this CSS style.
+					//		Function to simulate the borderRadius appearance on
+					//		IE, since IE does not support this CSS style.
 					// tags:
 					//		protected
 					dm.createRoundRect(this);
@@ -253,8 +264,8 @@ define([
 			lang.extend(RoundRectList, {
 				buildRendering: function(){
 					// summary:
-					//		Function to simulate the borderRadius appearance on IE, since
-					//		IE does not support this CSS style.
+					//		Function to simulate the borderRadius appearance on
+					//		IE, since IE does not support this CSS style.
 					// tags:
 					//		protected
 					dm.createRoundRect(this, true);
@@ -326,7 +337,7 @@ define([
 					_this.domNode = win.doc.createElement("DIV");
 					_this.domNode.style.padding = "0px";
 					_this.domNode.style.backgroundColor = "transparent";
-					_this.domNode.style.borderStyle = "none";
+					_this.domNode.style.border = "none"; // borderStyle = "none"; doesn't work on IE9
 					_this.containerNode = win.doc.createElement(isList?"UL":"DIV");
 					_this.containerNode.className = "mblRoundRectContainer";
 					if(_this.srcNodeRef){
@@ -395,47 +406,71 @@ define([
 					img.style.height = h + "px";
 				}
 			};
+
+			if(!dm._disableBgFilter && dm.createDomButton){
+				dm._createDomButton_orig = dm.createDomButton;
+				dm.createDomButton = function(/*DomNode*/refNode, /*Object?*/style, /*DomNode?*/toNode){
+					var node = dm._createDomButton_orig.apply(this, arguments);
+					if(node && node.className && node.className.indexOf("mblDomButton") !== -1){
+						var f = function(){
+							if(node.currentStyle && node.currentStyle.backgroundImage.match(/url.*(mblDomButton.*\.png)/)){
+								var img = RegExp.$1;
+								var src = require.toUrl("dojox/mobile/themes/common/domButtons/compat/") + img;
+								node.runtimeStyle.filter = "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + src+"',sizingMethod='crop')";
+								node.style.background = "none";
+							}
+						};
+						setTimeout(f, 1000);
+						setTimeout(f, 5000);
+					}
+					return node;
+				};
+			}
 		} // if(has("ie") <= 6)
 
-		// override deviceTheme.js
 		dm.loadCssFile = function(/*String*/file){
+			// summary:
+			//		Overrides dojox.mobile.loadCssFile() defined in
+			//		deviceTheme.js.
+			if(!dm.loadedCssFiles){ dm.loadedCssFiles = []; }
 			if(win.doc.createStyleSheet){
 				// for some reason, IE hangs when you try to load
 				// multiple css files almost at once.
 				setTimeout(function(file){
 					return function(){
-						win.doc.createStyleSheet(file);
+						var ss = win.doc.createStyleSheet(file);
+						ss && dm.loadedCssFiles.push(ss.owningElement);
 					};
 				}(file), 0);
 			}else{
-				domConstruct.create("LINK", {
+				dm.loadedCssFiles.push(domConstruct.create("LINK", {
 					href: file,
 					type: "text/css",
 					rel: "stylesheet"
-				}, win.doc.getElementsByTagName('head')[0]);
+				}, win.doc.getElementsByTagName('head')[0]));
 			}
 		};
 
 		dm.loadCss = function(/*String|Array*/files){
 			// summary:
 			//		Function to load and register CSS files with the page
-			//	files: String|Array
+			// files: String|Array
 			//		The CSS files to load and register with the page.
 			// tags:
 			//		private
-			if(!win.global._loadedCss){
+			if(!dm._loadedCss){
 				var obj = {};
 				array.forEach(dm.getCssPaths(), function(path){
 					obj[path] = true;
 				});
-				win.global._loadedCss = obj;
+				dm._loadedCss = obj;
 			}
 			if(!lang.isArray(files)){ files = [files]; }
-				for(var i = 0; i < files.length; i++){
-					var file = files[i];
-					if(!win.global._loadedCss[file]){
-						win.global._loadedCss[file] = true;
-						dm.loadCssFile(file);
+			for(var i = 0; i < files.length; i++){
+				var file = files[i];
+				if(!dm._loadedCss[file]){
+					dm._loadedCss[file] = true;
+					dm.loadCssFile(file);
 				}
 			}
 		};
@@ -469,11 +504,17 @@ define([
 
 		dm.loadCompatPattern = /\/mobile\/themes\/.*\.css$/;
 
-		dm.loadCompatCssFiles = function(){
+		dm.loadCompatCssFiles = function(/*Boolean?*/force){
 			// summary:
 			//		Function to perform page-level adjustments on browsers such as
 			//		IE and firefox.  It loads compat specific css files into the
 			//		page header.
+			if(has("ie") && !force){
+				setTimeout(function(){ // IE needs setTimeout
+					dm.loadCompatCssFiles(true);
+				}, 0);
+			}
+			dm._loadedCss = undefined;
 			var paths = dm.getCssPaths();
 			for(var i = 0; i < paths.length; i++){
 				var href = paths[i];
@@ -490,9 +531,7 @@ define([
 
 		ready(function(){
 			if(config["mblLoadCompatCssFiles"] !== false){
-				setTimeout(function(){ // IE needs setTimeout
-					dm.loadCompatCssFiles();
-				}, 0);
+				dm.loadCompatCssFiles();
 			}
 			if(dm.applyPngFilter){
 				dm.applyPngFilter();

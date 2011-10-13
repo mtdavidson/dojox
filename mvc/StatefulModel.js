@@ -1,10 +1,9 @@
 define([
-	"dojo/_base/kernel",
 	"dojo/_base/lang",
 	"dojo/_base/array",
 	"dojo/_base/declare",
 	"dojo/Stateful"
-], function(dojo, lang, array, declare, Stateful){
+], function(lang, array, declare, Stateful){
 	/*=====
 		declare = dojo.declare;
 		Stateful = dojo.Stateful;
@@ -186,7 +185,7 @@ define([
 			//		Resets this data model values to its original state.
 			//		Structural changes to the data model (such as adds or removes)
 			//		are not restored.
-			if(lang.isObject(this.data)){
+			if(lang.isObject(this.data) && !(this.data instanceof Date) && !(this.data instanceof RegExp)){	
 				for(var x in this){
 					if(this[x] && lang.isFunction(this[x].reset)){
 						this[x].reset();
@@ -236,7 +235,11 @@ define([
 				}
 			}
 			if(!nested){
-				ret = this.value;
+				if(this.get("length") === 0){
+					ret = [];
+				}else{				
+					ret = this.value;
+				}
 			}
 			return ret;
 		},
@@ -333,6 +336,24 @@ define([
 			}
 		},
 
+		valueOf: function(){
+			// summary:
+			//		Returns the value representation of the data currently within this data model.
+			// returns:
+			//		Object
+			//		The object representation of the data in this model.
+			return this.toPlainObject();
+		},
+
+		toString: function(){
+			// summary:
+			//		Returns the string representation of the data currently within this data model.
+			// returns:
+			//		String
+			//		The object representation of the data in this model.
+			return this.value === "" && this.data ? this.data.toString() : this.value.toString();
+		},
+
 		//////////////////////// PRIVATE INITIALIZATION METHOD ////////////////////////
 
 		constructor: function(/*Object*/ args){
@@ -364,7 +385,7 @@ define([
 			//		The input for the model, as a plain JavaScript object.
 			// tags:
 			//		private
-			if(lang.isObject(obj)){
+			if(lang.isObject(obj) && !(obj instanceof Date) && !(obj instanceof RegExp)){	
 				for(var x in obj){
 					var newProp = new StatefulModel({ data : obj[x] });
 					this.set(x, newProp);

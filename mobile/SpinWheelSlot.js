@@ -7,29 +7,57 @@ define([
 	"dijit/_WidgetBase",
 	"./_ScrollableMixin"
 ], function(declare, win, domClass, domConstruct, Contained, WidgetBase, ScrollableMixin){
+
+/*=====
+	var Contained = dijit._Contained;
+	var WidgetBase = dijit._WidgetBase;
+	var ScrollableMixin = dojox.mobile._ScrollableMixin;
+=====*/
+
 	// module:
 	//		dojox/mobile/SpinWheelSlot
 	// summary:
-	//		TODOC
+	//		A slot of a SpinWheel.
 
-	/*=====
-		WidgetBase = dijit._WidgetBase;
-		Contained = dijit._Contained;
-		ScrollableMixin = dojox.mobile._ScrollableMixin;
-	=====*/
 	return declare("dojox.mobile.SpinWheelSlot", [WidgetBase, Contained, ScrollableMixin], {
-		items: [], // Ex. [[0,"Jan"],...]
-		labels: [], // Ex. ["Jan","Feb",...]
+		// summary:
+		//		A slot of a SpinWheel.
+		// description:
+		//		SpinWheelSlot is a slot that is placed in the SpinWheel widget.
+
+		// items: Array
+		//		An array of array of key-label paris.
+		//		(e.g. [[0,"Jan"],[1,"Feb"],...] ) If key values for each label
+		//		are not necessary, labels can be used instead.
+		items: [],
+
+		// labels: Array
+		//		An array of labels to be displayed on the slot.
+		//		(e.g. ["Jan","Feb",...] ) This is a simplified version of the
+		//		items property.
+		labels: [],
+
+		// labelFrom: Number
+		//		The start value of display values of the slot. This parameter is
+		//		especially useful when slot has serial values.
 		labelFrom: 0,
+
+		// labelTo: Number
+		//		The end value of display values of the slot.
 		labelTo: 0,
+
+		// value: String
+		//		The initial value of the slot.
+		value: "",
+
+		/* internal properties */	
 		maxSpeed: 500,
 		minItems: 15,
 		centerPos: 0,
-		value: "", // initial value
-	
 		scrollBar: false,
 		constraint: false,
 		allowNestedScrolls: false,
+		androidWorkaroud: false, // disable workaround in SpinWheel
 
 		buildRendering: function(){
 			this.inherited(arguments);
@@ -78,14 +106,12 @@ define([
 			this.centerPos = this.getParent().centerPos;
 			var items = this.panelNodes[1].childNodes;
 			this._itemHeight = items[0].offsetHeight;
-	
-			var _this = this;
-			setTimeout(function(){ // to get the correct dimension
-				_this.adjust();
-			}, 0);
+			this.adjust();
 		},
 	
 		adjust: function(){
+			// summary:
+			//		Adjusts the position of slot panels.
 			var items = this.panelNodes[1].childNodes;
 			var adjustY;
 			for(var i = 0, len = items.length; i < len; i++){
@@ -102,6 +128,8 @@ define([
 		},
 	
 		setInitialValue: function(){
+			// summary:
+			//		Sets the initial value using this.value or the first item.
 			if(this.items.length > 0){
 				var val = (this.value !== "") ? this.value : this.items[0][1];
 				this.setValue(val);
@@ -109,6 +137,8 @@ define([
 		},
 	
 		getCenterPanel: function(){
+			// summary:
+			//		Gets a panel that contains the currently selected item.
 			var pos = this.getPos();
 			for(var i = 0, len = this.panelNodes.length; i < len; i++){
 				var top = pos.y + this.panelNodes[i].offsetTop;
@@ -120,6 +150,8 @@ define([
 		},
 	
 		setColor: function(/*String*/value){
+			// summary:
+			//		Sets the color of the specified item as blue.
 			for(var i = 0, len = this.panelNodes.length; i < len; i++){
 				var items = this.panelNodes[i].childNodes;
 				for(var j = 0; j < items.length; j++){
@@ -133,6 +165,8 @@ define([
 		},
 	
 		disableValues: function(/*Array*/values){
+			// summary:
+			//		Makes the specified items grayed out.
 			for(var i = 0, len = this.panelNodes.length; i < len; i++){
 				var items = this.panelNodes[i].childNodes;
 				for(var j = 0; j < items.length; j++){
@@ -148,13 +182,17 @@ define([
 		},
 	
 		getCenterItem: function(){
+			// summary:
+			//		Gets the currently selected item.
 			var pos = this.getPos();
 			var centerPanel = this.getCenterPanel();
-			var top = pos.y + centerPanel.offsetTop;
-			var items = centerPanel.childNodes;
-			for(var i = 0, len = items.length; i < len; i++){
-				if(top + items[i].offsetTop <= this.centerPos && this.centerPos < top + items[i].offsetTop + items[i].offsetHeight){
-					return items[i];
+			if(centerPanel){
+				var top = pos.y + centerPanel.offsetTop;
+				var items = centerPanel.childNodes;
+				for(var i = 0, len = items.length; i < len; i++){
+					if(top + items[i].offsetTop <= this.centerPos && this.centerPos < top + items[i].offsetTop + items[i].offsetHeight){
+						return items[i];
+					}
 				}
 			}
 			return null;
@@ -162,16 +200,28 @@ define([
 		},
 	
 		getValue: function(){
-			return this.getCenterItem().innerHTML;
+			// summary:
+			//		Gets the currently selected value.
+			var item = this.getCenterItem();
+			return (item && item.innerHTML);
 		},
 	
 		getKey: function(){
+			// summary:
+			//		Gets the key for the currently selected value.
 			return this.getCenterItem().getAttribute("name");
 		},
 	
 		setValue: function(newValue){
+			// summary:
+			//		Sets the newValue to this slot.
 			var idx0, idx1;
 			var curValue = this.getValue();
+			if(!curValue){
+				this._penddingValue = newValue;
+				return;
+			}
+			this._penddingValue = undefined;
 			var n = this.items.length;
 			for(var i = 0; i < n; i++){
 				if(this.items[i][1] === String(curValue)){
@@ -184,7 +234,7 @@ define([
 					break;
 				}
 			}
-			var d = idx1 - idx0;
+			var d = idx1 - (idx0 || 0);
 			var m;
 			if(d > 0){
 				m = (d < n - d) ? -d : n - d;
@@ -196,8 +246,9 @@ define([
 			this.slideTo(to, 1);
 		},
 	
-		// override scrollable.js
 		getSpeed: function(){
+			// summary:
+			//		Overrides dojox.mobile.scrollable.getSpeed().
 			var y = 0, n = this._time.length;
 			var delta = (new Date()).getTime() - this.startTime - this._time[n - 1];
 			if(n >= 2 && delta < 200){
@@ -208,8 +259,9 @@ define([
 			return {x:0, y:y};
 		},
 
-		// override scrollable.js
 		calcSpeed: function(/*Number*/d, /*Number*/t){
+			// summary:
+			//		Overrides dojox.mobile.scrollable.calcSpeed().
 			var speed = this.inherited(arguments);
 			if(!speed){ return 0; }
 			var v = Math.abs(speed);
@@ -220,8 +272,9 @@ define([
 			return ret;
 		},
 	
-		// override scrollable.js
 		adjustDestination: function(to, pos){
+			// summary:
+			//		Overrides dojox.mobile.scrollable.adjustDestination().
 			var h = this._itemHeight;
 			var j = to.y + Math.round(h/2);
 			var a = Math.abs(j);
@@ -229,8 +282,15 @@ define([
 			to.y = j - r;
 		},
 	
-		// override scrollable.js
+		resize: function(e){
+			if(this._penddingValue){
+				this.setValue(this._penddingValue);
+			}
+		},
+
 		slideTo: function(/*Object*/to, /*Number*/duration, /*String*/easing){
+			// summary:
+			//		Overrides dojox.mobile.scrollable.slideTo().
 			var pos = this.getPos();
 			var top = pos.y + this.panelNodes[1].offsetTop;
 			var bottom = top + this.panelNodes[1].offsetHeight;
@@ -255,10 +315,13 @@ define([
 					this.panelNodes[2] = t;
 				}
 			}
-			if(Math.abs(this._speed.y) < 40){
+			if(!this._initialized){
+				duration = 0; // to reduce flickers at start-up especially on android
+				this._initialized = true;
+			}else if(Math.abs(this._speed.y) < 40){
 				duration = 0.2;
 			}
-			this.inherited(arguments);
+			this.inherited(arguments, [to, duration, easing]); // 2nd arg is to avoid excessive optimization by closure compiler
 		}
 	});
 });

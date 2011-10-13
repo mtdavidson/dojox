@@ -8,6 +8,9 @@
 		<link href="../themes/iphone/IconContainer.css" rel="stylesheet">
 
 		<style>
+			html,body{
+				overflow: hidden;
+			}
 			.box {
 				border: 1px solid #A7C0E0;
 				width: 300px;
@@ -26,7 +29,7 @@
 			dojo.require("dojox.mobile.IconContainer");
 		</script>
 	</head>
-	<body>
+	<body style="visibility:hidden;">
 		<div id="foo" dojoType="dojox.mobile.View" selected="true">
 			<h1 dojoType="dojox.mobile.Heading">Sprite Icons</h1>
 			<ul dojoType="dojox.mobile.IconContainer" iconBase="images/icon-all.png">

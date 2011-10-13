@@ -8,25 +8,71 @@ define([
 	"./common",
 	"./_ItemBase"
 ], function(declare, lang, win, domClass, domConstruct, registry, common, ItemBase){
-	// module:
-	//		dojox/mobile/TabBar
-	// summary:
-	//		TODOC
 
-	/*=====
-		ItemBase = dojox.mobile._ItemBase;
-	=====*/
-	return declare("dojox.mobile.TabBarButton", [ItemBase],{
-		icon1: "", // unselected (dark) icon
-		icon2: "", // selected (highlight) icon
-		iconPos1: "", // unselected (dark) icon position
-		iconPos2: "", // selected (highlight) icon position
+/*=====
+	var ItemBase = dojox.mobile._ItemBase;
+=====*/
+
+	// module:
+	//		dojox/mobile/TabBarButton
+	// summary:
+	//		A button widget that is placed in the TabBar widget.
+
+	return declare("dojox.mobile.TabBarButton", ItemBase,{
+		// summary:
+		//		A button widget that is placed in the TabBar widget.
+		// description:
+		//		TabBarButton is a button that is placed in the TabBar widget. It
+		//		is a subclass of dojox.mobile._ItemBase just like ListItem or
+		//		IconItem. So, unlike Button, it has similar capability as
+		//		ListItem or IconItem, such as icon support, transition, etc.
+
+		// icon1: String
+		//		A path for the unselected (typically dark) icon. If icon is not
+		//		specified, the iconBase parameter of the parent widget is used.
+		icon1: "",
+
+		// icon2: String
+		//		A path for the selected (typically highlight) icon. If icon is
+		//		not specified, the iconBase parameter of the parent widget or
+		//		icon1 is used.
+		icon2: "",
+
+		// iconPos1: String
+		//		The position of an aggregated unselected (typically dark)
+		//		icon. IconPos1 is comma separated values like
+		//		top,left,width,height (ex. "0,0,29,29"). If iconPos1 is not
+		//		specified, the iconPos parameter of the parent widget is used.
+		iconPos1: "",
+
+		// iconPos2: String
+		//		The position of an aggregated selected (typically highlight)
+		//		icon. IconPos2 is comma separated values like
+		//		top,left,width,height (ex. "0,0,29,29"). If iconPos2 is not
+		//		specified, the iconPos parameter of the parent widget or
+		//		iconPos1 is used.
+		iconPos2: "",
+
+		// selected: Boolean
+		//		If true, the button is in the selected status.
 		selected: false,
+
+		// transition: String
+		//		A type of animated transition effect.
 		transition: "none",
+
+		// tag: String
+		//		A name of html tag to create as domNode.
 		tag: "LI",
+
+		/* internal properties */	
 		selectOne: true,
+
 	
 		inheritParams: function(){
+			// summary:
+			//		Overrides dojox.mobile._ItemBase.inheritParams().
+			if(this.icon && !this.icon1){ this.icon1 = this.icon; }
 			var parent = this.getParent();
 			if(parent){
 				if(!this.transition){ this.transition = parent.transition; }
@@ -48,9 +94,6 @@ define([
 		buildRendering: function(){
 			var a = this.anchorNode = domConstruct.create("A", {className:"mblTabBarButtonAnchor"});
 			this.connect(a, "onclick", "onClick");
-	
-			var div = domConstruct.create("DIV", {className:"mblTabBarButtonDiv"}, a);
-			var divInner = this.innerDivNode = domConstruct.create("DIV", {className:"mblTabBarButtonDiv mblTabBarButtonDivInner"}, div);
 	
 			this.box = domConstruct.create("DIV", {className:"mblTabBarButtonTextBox"}, a);
 			var box = this.box;
@@ -76,8 +119,13 @@ define([
 			this.containerNode = this.domNode;
 			this.domNode.appendChild(a);
 			if(this.domNode.className.indexOf("mblDomButton") != -1){
+				// deprecated. TODO: remove this code in 1.8
 				var domBtn = domConstruct.create("DIV", null, a);
 				common.createDomButton(this.domNode, null, domBtn);
+				domClass.add(this.domNode, "mblTabButtonDomButton");
+				domClass.add(domBtn, "mblTabButtonDomButtonClass");
+			}
+			if((this.icon1 || this.icon).indexOf("mblDomButton") != -1){
 				domClass.add(this.domNode, "mblTabButtonDomButton");
 			}
 		},
@@ -101,6 +149,8 @@ define([
 		},
 	
 		select: function(){
+			// summary:
+			//		Makes this widget in the selected state.
 			if(arguments[0]){ // deselect
 				this.selected = false;
 				domClass.remove(this.domNode, "mblTabButtonSelected");
@@ -124,6 +174,8 @@ define([
 		},
 		
 		deselect: function(){
+			// summary:
+			//		Makes this widget in the deselected state.
 			this.select(true);
 		},
 	
@@ -138,35 +190,23 @@ define([
 				if(this[p] === pos){ return; }
 				this[p] = pos;
 			}
-			var div = this.innerDivNode;
-			if(icon && icon.indexOf("mblDomButton") === 0){
-				if(!this[n]){
-					this[n] = domConstruct.create("DIV", null, div);
+			if(icon && icon !== "none"){
+				if(!this.iconDivNode){
+					this.iconDivNode = domConstruct.create("DIV", {className:"mblTabBarButtonDiv"}, this.anchorNode, "first");
 				}
-				this[n].className = icon + " mblTabBarButtonIcon";
-				common.createDomButton(this[n]);
-				domClass.remove(div, "mblTabBarButtonNoIcon");
-			}else if(icon && icon != "none"){
 				if(!this[n]){
-					this[n] = domConstruct.create("IMG", {
-						className: "mblTabBarButtonIcon",
-						alt: this.alt
-					}, div);
+					this[n] = domConstruct.create("div", {className:"mblTabBarButtonIcon"}, this.iconDivNode);
+				}else{
+					domConstruct.empty(this[n]);
 				}
-				this[n].src = icon;
+				common.createIcon(icon, this[p], null, this.alt, this[n]);
+				if(this[p]){
+					domClass.add(this[n].firstChild, "mblTabBarButtonSpriteIcon");
+				}
+				domClass.remove(this.iconDivNode, "mblTabBarButtonNoIcon");
 				this[n].style.visibility = sel ? "hidden" : "";
-				common.setupIcon(this[n], this[p]);
-				this[n].onload = function(){
-					// iPhone and Windows Safari sometimes fail to draw icon images.
-					// For some reason, this code solves the problem.
-					// Other browsers, including Chrome, do not have this problem.
-					// Same issue is fixed again a few lines below inside icon2Node.onload()
-					var originDisplay = this.style.display;
-					this.style.display = "none";
-					this.style.display = originDisplay;
-				};
-			}else{
-				domClass.add(div, "mblTabBarButtonNoIcon");
+			}else if(this.iconDivNode){
+				domClass.add(this.iconDivNode, "mblTabBarButtonNoIcon");
 			}
 		},
 	

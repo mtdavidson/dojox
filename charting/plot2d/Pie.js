@@ -33,7 +33,11 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 		//	labelStyle: String?
 		//		Options as to where to draw labels.  Values include "default", and "columns".	Default is "default".
 		labelStyle:		"default",	// default/columns
-	
+		
+		//	omitLabels: Boolean?
+		//		Whether labels of slices small to the point of not being visible are omitted.	Default false.
+		omitLabels: false,
+		
 		//	htmlLabels: Boolean?
 		//		Whether or not to use HTML to render slice labels. Default is true.
 		htmlLabels:		true,
@@ -53,6 +57,10 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 		//	radius: Number?
 		//		The size of the radial gradient.  Default is 0.
 		radius:		0
+
+		//	shadow: dojox.gfx.Stroke?
+		//		An optional stroke to use to draw any shadows for a series on a plot.
+		shadow:		{},
 	});
 	=====*/
 
@@ -75,6 +83,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 		},
 		optionalParams: {
 			radius:		0,
+			omitLabels: false,
 			// theme components
 			stroke:		{},
 			outline:	{},
@@ -219,6 +228,15 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 					r:  r
 				};
 
+			// draw shadow
+			if(this.opt.shadow || t.shadow){
+				var shadow = this.opt.shadow || t.shadow;
+				var scircle = lang.clone(circle);
+				scircle.cx += shadow.dx;
+				scircle.cy += shadow.dy;
+				s.createCircle(scircle).setFill(shadow.color).setStroke(shadow);
+			}
+			
 			this.dyn = [];
 			// draw slices
 			var eventSeries = new Array(slices.length);
@@ -231,7 +249,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 				  this.dyn.push({fill: null, stroke: null});
 				  return false;
 				}
-				var v = run[i], theme = themes[i], specialFill;
+				var v = run[i], theme = themes[i], specialFill, o;
 				if(slice >= 1){
 					// whole pie
 					specialFill = this._plotFill(theme.series.fill, dim, offsets);
@@ -245,7 +263,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 					this.dyn.push({fill: specialFill, stroke: theme.series.stroke});
 
 					if(events){
-						var o = {
+						o = {
 							element: "slice",
 							index:   i,
 							run:     this.run,
@@ -322,7 +340,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 				this.dyn.push({fill: specialFill, stroke: theme.series.stroke});
 
 				if(events){
-					var o = {
+					o = {
 						element: "slice",
 						index:   i,
 						run:     this.run,
@@ -366,6 +384,9 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 						if(i + 1 == slices.length){
 							end = startAngle + 2 * Math.PI;
 						}
+						if(this.opt.omitLabels && end-start < 0.001){
+							return false;	// continue
+						}
 						var	labelAngle = (start + end) / 2,
 							x = circle.cx + labelR * Math.cos(labelAngle),
 							y = circle.cy + labelR * Math.sin(labelAngle) + size / 2;
@@ -380,6 +401,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 					}, this);
 				}else if(this.opt.labelStyle == "columns"){
 					start = startAngle;
+					var omitLabels = this.opt.omitLabels;
 					//calculate label angles
 					var labeledSlices = [];
 					arr.forEach(slices, function(slice, i){
@@ -393,7 +415,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 							left: Math.cos(labelAngle) < 0,
 							theme: themes[i],
 							index: i,
-							omit: end - start < 0.001
+							omit: omitLabels?end - start < 0.001:false
 						});
 						start = end;
 					});
@@ -410,7 +432,7 @@ define(["dojo/_base/lang", "dojo/_base/array" ,"dojo/_base/declare",
 								y = circle.cy + slice.labelR * Math.sin(slice.angle),
 								jointX = (slice.left) ? (leftColumn + labelWidth) : (rightColumn - labelWidth),
 								labelX = (slice.left) ? leftColumn : jointX;
-							var wiring = s.createPath().moveTo(circle.cx + circle.r * Math.cos(slice.angle), circle.cy + circle.r * Math.sin(slice.angle))
+							var wiring = s.createPath().moveTo(circle.cx + circle.r * Math.cos(slice.angle), circle.cy + circle.r * Math.sin(slice.angle));
 							if (Math.abs(slice.labelR * Math.cos(slice.angle)) < circle.r * 2 - labelWidth) {
 								wiring.lineTo(x, y);
 							}

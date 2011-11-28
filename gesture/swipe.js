@@ -11,19 +11,27 @@ define([
 	dojox.gesture.swipe = {
 		// summary:
 		//		This module provides swipe gestures including:
+		//
 		//		1. dojox.gesture.swipe
+		//
 		//			A series of 'swipe' will be fired during touchmove, this will mostly
 		//			be used to keep sliding the Dom target based on the swiped distance(dx, dy).
 		//
-		//		2. dojox.gesture.swipe.end	
+		//		2. dojox.gesture.swipe.end
+		//	
 		//			Fired when a swipe is ended so that an bounce animation may be applied
-		//			to the Dom target sliding to the final position.
+		//			to the dom target sliding to the final position.
 		//
 		//		Following information will be included in the fired swipe events:
+		//
 		//		1. type: 'swipe'|'swipe.end'
+		//
 		//		2. time: an integer indicating the delta time(in milliseconds)
+		//
 		//		3. dx: delta distance on X axis, dx less than 0 - moving left, dx larger than 0 - moving right
+		//
 		//		4. dy: delta distance on Y axis, dy less than 0 - moving up, dY larger than 0 - moving down
+		//
 		//		Note - dx and dy can also be used together for a hybrid swipe(both vertically and horizontally)
 		//
 		// example:
@@ -46,8 +54,7 @@ kernel.experimental("dojox.gesture.swipe");
 
 // Declare an internal anonymous class which will only be exported
 // by module return value e.g. dojox.gesture.swipe.Swipe
-// should be changed to "declare(Base, {...});" once http://bugs.dojotoolkit.org/ticket/13890 is fixed
-var clz = declare(" ", Base, {
+var clz = declare(/*===== "dojox.gesture.swipe", =====*/Base, {
 
 	// defaultEvent: [readonly] String
 	//		Default event - 'swipe'

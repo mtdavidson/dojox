@@ -93,7 +93,7 @@ define([
 	
 		buildRendering: function(){
 			var a = this.anchorNode = domConstruct.create("A", {className:"mblTabBarButtonAnchor"});
-			this.connect(a, "onclick", "onClick");
+			this.connect(a, "onclick", "_onClick");
 	
 			this.box = domConstruct.create("DIV", {className:"mblTabBarButtonTextBox"}, a);
 			var box = this.box;
@@ -104,14 +104,11 @@ define([
 					var n = r.firstChild;
 					if(n.nodeType === 3){
 						label += lang.trim(n.nodeValue);
-						n.nodeValue = this._cv ? this._cv(n.nodeValue) : n.nodeValue;
 					}
 					box.appendChild(n);
 				}
 			}
-			if(this.label){
-				box.appendChild(win.doc.createTextNode(this._cv ? this._cv(this.label) : this.label));
-			}else{
+			if(!this.label){
 				this.label = label;
 			}
 	
@@ -179,8 +176,20 @@ define([
 			this.select(true);
 		},
 	
-		onClick: function(e){
+		_onClick: function(e){
+			// summary:
+			//		Internal handler for click events.
+			// tags:
+			//		private
+			if(this.onClick(e) === false){ return; } // user's click action
 			this.defaultClickAction();
+		},
+
+		onClick: function(/*Event*/ /*===== e =====*/){
+			// summary:
+			//		User defined function to handle clicks
+			// tags:
+			//		callback
 		},
 	
 		_setIcon: function(icon, pos, num, sel){
@@ -224,6 +233,11 @@ define([
 	
 		_setIconPos2Attr: function(pos){
 			this._setIcon(null, pos, 2, !this.selected);
+		},
+
+		_setLabelAttr: function(/*String*/text){
+			this.label = text;
+			this.box.innerHTML = this._cv ? this._cv(text) : text;
 		}
 	});
 });

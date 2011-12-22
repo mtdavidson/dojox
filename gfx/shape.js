@@ -153,11 +153,13 @@ define(["./_base", "dojo/_base/lang", "dojo/_base/declare", "dojo/_base/window",
 			return this.parent;	// Object
 		},
 		getBoundingBox: function(){
-			// summary: Returns the bounding box Rectanagle for this shape or null if a BoundingBox cannot be
+			// summary: Returns the bounding box Rectangle for this shape or null if a BoundingBox cannot be
 			//	calculated for the shape on the current renderer or for shapes with no geometric area (points).
 			//	A bounding box is a rectangular geometric region
 			//	defining the X and Y extent of the shape.
 			//	(see dojox.gfx.defaultRect)
+			//	Note that this method returns a direct reference to the attribute of this instance. Therefore you should
+			//	not modify its value directly but clone it instead.
 			return this.bbox;	// dojox.gfx.Rectangle
 		},
 		getTransformedBoundingBox: function(){
@@ -492,9 +494,45 @@ define(["./_base", "dojo/_base/lang", "dojo/_base/declare", "dojo/_base/window",
 			this.children = [];
 			return this;	// self
 		},
-	
+		getBoundingBox: function(){
+			// summary: Returns the bounding box Rectangle for this shape.
+			if(this.children){
+				// if this is a composite shape, then sum up all the children
+				var result = null;
+				arr.forEach(this.children, function(shape){
+					var bb = shape.getBoundingBox();
+					if(bb){
+						var ct = shape.getTransform();
+						if(ct){
+							bb = matrixLib.multiplyRectangle(ct, bb);
+						}
+						if(result){
+							// merge two bbox 
+							result.x = Math.min(result.x, bb.x);
+							result.y = Math.min(result.y, bb.y);
+							result.endX = Math.max(result.endX, bb.x + bb.width);
+							result.endY = Math.max(result.endY, bb.y + bb.height);
+						}else{
+							// first bbox 
+							result = {
+								x: bb.x,
+								y: bb.y,
+								endX: bb.x + bb.width,
+								endY: bb.y + bb.height
+							};
+						}
+					}
+				});
+				if(result){
+					result.width = result.endX - result.x;
+					result.height = result.endY - result.y;
+				}
+				return result; // dojox.gfx.Rectangle
+			}
+			// unknown/empty bounding box, subclass shall override this impl 
+			return null;
+		},
 		// moving child nodes
-	
 		_moveChildToFront: function(shape){
 			// summary: moves a shape to front of the list of shapes
 			//	shape: dojox.gfx.shape.Shape

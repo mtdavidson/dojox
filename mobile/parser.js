@@ -54,6 +54,9 @@ define([
 							params[prop] = (v !== "false");
 						}else if(t === "object"){
 							params[prop] = eval("(" + v + ")");
+						}else if(t === "function"){
+							params[prop] = lang.getObject(v, false) || new Function(v);
+//							n.removeAttribute(prop); TODO: uncomment this when dojo.parser is ready.
 						}
 					}
 					params["class"] = n.className;
@@ -105,9 +108,22 @@ define([
 		};
 	}();
 	if(config.parseOnLoad){
-		ready(100, parser, "parse");
+		ready(100, function(){
+			// Now that all the modules are loaded, check if the app loaded dojo/parser too.
+			// If it did, let dojo/parser handle the parseOnLoad flag instead of me.
+			try{
+				if(!require("dojo/parser")){
+					// IE6 takes this path when dojo/parser unavailable, rather than catch() block below,
+					// due to http://support.microsoft.com/kb/944397
+					parser.parse();
+				}
+			}catch(e){
+				// Other browsers (and later versions of IE) take this path when dojo/parser unavailable
+				parser.parse();
+			}
+		});
 	}
 	dm.parser = parser; // for backward compatibility
-	dojo.parser = parser; // in case user application calls dojo.parser
+	dojo.parser = dojo.parser || parser; // in case user application calls dojo.parser
 	return parser;
 });

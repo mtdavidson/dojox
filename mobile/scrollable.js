@@ -215,7 +215,7 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	this.threshold = 4; // drag threshold value in pixels
 	this.constraint = true; // bounce back to the content area
 	this.touchNode = null; // a node that will have touch event handlers
-	this.isNested = false; // this scrollable's parent is also a scrollable
+	this.propagatable = true; // let touchstart event propagate up
 	this.dirLock = false; // disable the move handler if scroll starts in the unexpected direction
 	this.height = ""; // explicitly specified height of this widget (ex. "300px")
 	this.androidWorkaroud = true; // workaround input field jumping issue
@@ -243,7 +243,7 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 
 		this._ch = []; // connect handlers
 		this._ch.push(connect.connect(this.touchNode,
-			has('touch') ? "touchstart" : "onmousedown", this, "onTouchStart"));
+			has('touch') ? "ontouchstart" : "onmousedown", this, "onTouchStart"));
 		if(has("webkit")){
 			this._ch.push(connect.connect(this.domNode, "webkitAnimationEnd", this, "onFlickAnimationEnd"));
 			this._ch.push(connect.connect(this.domNode, "webkitAnimationStart", this, "onFlickAnimationStart"));
@@ -301,6 +301,7 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	this.findDisp = function(/*DomNode*/node){
 		// summary:
 		//		Finds the currently displayed view node from my sibling nodes.
+		if(!node.parentNode){ return null; }
 		var nodes = node.parentNode.childNodes;
 		for(var i = 0; i < nodes.length; i++){
 			var n = nodes[i];
@@ -548,8 +549,8 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 		}
 		if(!this._conn){
 			this._conn = [];
-			this._conn.push(connect.connect(win.doc, has('touch') ? "touchmove" : "onmousemove", this, "onTouchMove"));
-			this._conn.push(connect.connect(win.doc, has('touch') ? "touchend" : "onmouseup", this, "onTouchEnd"));
+			this._conn.push(connect.connect(win.doc, has('touch') ? "ontouchmove" : "onmousemove", this, "onTouchMove"));
+			this._conn.push(connect.connect(win.doc, has('touch') ? "ontouchend" : "onmouseup", this, "onTouchEnd"));
 		}
 
 		this._aborted = false;
@@ -569,9 +570,9 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 		this._posX = [this.touchStartX];
 		this._posY = [this.touchStartY];
 		this._locked = false;
-
-		if(!this.isFormElement(e.target) && !this.isNested){
-			event.stop(e);
+		
+		if(!this.isFormElement(e.target)){
+			this.propagatable ? e.preventDefault() : event.stop(e);
 		}
 	};
 
@@ -1141,7 +1142,7 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 	};
 
 	this.flashScrollBar = function(){
-		if(this.disableFlashScrollBar){ return; }
+		if(this.disableFlashScrollBar || !this.domNode){ return; }
 		this._dim = this.getDim();
 		if(this._dim.d.h <= 0){ return; } // dom is not ready
 		this.showScrollBar();
@@ -1167,7 +1168,7 @@ var scrollable = function(/*Object?*/dojo, /*Object?*/dojox){
 					zIndex: 2147483647 // max of signed 32-bit integer
 				});
 				this._ch.push(connect.connect(this._cover,
-					has('touch') ? "touchstart" : "onmousedown", this, "onTouchEnd"));
+					has('touch') ? "ontouchstart" : "onmousedown", this, "onTouchEnd"));
 			}else{
 				this._cover.style.display = "";
 			}

@@ -351,7 +351,7 @@ define(["dojo/_base/kernel",
                                 break;
                                 case dojox.geo.openlayers.BaseLayerType.TILESTACHE:
                                         base = new Layer(name, {
-                                               olLayer : new new OpenLayers.Layer.TileStache(name, options)
+                                               olLayer : new OpenLayers.Layer.TileStache(name, options)
                                         });
                                 break;
 			}

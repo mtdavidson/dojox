@@ -34,10 +34,11 @@ define([
 			var i, ws = [];
 			if(nodes){
 				for(i = 0; i < nodes.length; i++){
-					var n = nodes[i];
-					var cls = lang.getObject(n.getAttribute("dojoType") || n.getAttribute("data-dojo-type"));
-					var proto = cls.prototype;
-					var params = {}, prop, v, t;
+					var n = nodes[i],
+						type = n.getAttribute("dojoType") || n.getAttribute("data-dojo-type"),
+						cls = lang.getObject(type) || require(type),
+						proto = cls.prototype,
+						params = {}, prop, v, t;
 					lang.mixin(params, eval('({'+(n.getAttribute("data-dojo-props")||"")+'})'));
 					lang.mixin(params, args.defaults);
 					lang.mixin(params, mixin);
@@ -46,7 +47,9 @@ define([
 						v = v && v.nodeValue;
 						t = typeof proto[prop];
 						if(!v && (t !== "boolean" || v !== "")){ continue; }
-						if(t === "string"){
+						if(lang.isArray(proto[prop])){
+							params[prop] = v.split(/\s*,\s*/);
+						}else if(t === "string"){
 							params[prop] = v;
 						}else if(t === "number"){
 							params[prop] = v - 0;

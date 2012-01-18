@@ -44,7 +44,10 @@ define(["dojo/_base/kernel",
 		ARCGIS : "ArcGIS",
                 //      CloudMade String
                 //              THe CloudMade base layer selector.
-                CLOUDMADE : "CloudMade"
+                CLOUDMADE : "CloudMade",
+                //      TileStache String
+                //              The TileStach base layer selector.
+                TILESTACHE : "TileStache"
 	};
 
 	dojox.geo.openlayers.EPSG4326 = new OpenLayers.Projection("EPSG:4326");
@@ -344,6 +347,11 @@ define(["dojo/_base/kernel",
                                 case dojox.geo.openlayers.BaseLayerType.CLOUDMADE: 
                                         base = new Layer(name, {
                                                 olLayer : new OpenLayers.Layer.CloudMade(name, options)
+                                        });
+                                break;
+                                case dojox.geo.openlayers.BaseLayerType.TILESTACHE:
+                                        base = new Layer(name, {
+                                               olLayer : new new OpenLayers.Layer.TileStache(name, options)
                                         });
                                 break;
 			}

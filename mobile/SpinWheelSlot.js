@@ -1,17 +1,17 @@
 define([
 	"dojo/_base/declare",
+	"dojo/_base/lang",
 	"dojo/_base/window",
 	"dojo/dom-class",
 	"dojo/dom-construct",
 	"dijit/_Contained",
 	"dijit/_WidgetBase",
-	"./_ScrollableMixin"
-], function(declare, win, domClass, domConstruct, Contained, WidgetBase, ScrollableMixin){
+	"./scrollable"
+], function(declare, lang, win, domClass, domConstruct, Contained, WidgetBase, Scrollable){
 
 /*=====
 	var Contained = dijit._Contained;
 	var WidgetBase = dijit._WidgetBase;
-	var ScrollableMixin = dojox.mobile._ScrollableMixin;
 =====*/
 
 	// module:
@@ -19,7 +19,10 @@ define([
 	// summary:
 	//		A slot of a SpinWheel.
 
-	return declare("dojox.mobile.SpinWheelSlot", [WidgetBase, Contained, ScrollableMixin], {
+	var cls = declare("", null, {});
+	lang.extend(cls, new Scrollable());
+
+	return declare("dojox.mobile.SpinWheelSlot", [WidgetBase, Contained, cls], {
 		// summary:
 		//		A slot of a SpinWheel.
 		// description:
@@ -50,6 +53,12 @@ define([
 		//		The initial value of the slot.
 		value: "",
 
+		// tabIndex: String
+		//		Tabindex setting for this widget so users can hit the tab key to
+		//		focus on it.
+		tabIndex: "0",
+		_setTabIndexAttr: "", // sets tabIndex to domNode
+
 		/* internal properties */	
 		maxSpeed: 500,
 		minItems: 15,
@@ -76,17 +85,17 @@ define([
 				}
 			}
 
-			this.containerNode = domConstruct.create("DIV", {className:"mblSpinWheelSlotContainer"});
+			this.containerNode = domConstruct.create("div", {className:"mblSpinWheelSlotContainer"});
 			this.containerNode.style.height
 				= (win.global.innerHeight||win.doc.documentElement.clientHeight) * 2 + "px"; // must bigger than the screen
 			this.panelNodes = [];
 			for(var k = 0; k < 3; k++){
-				this.panelNodes[k] = domConstruct.create("DIV", {className:"mblSpinWheelSlotPanel"});
+				this.panelNodes[k] = domConstruct.create("div", {className:"mblSpinWheelSlotPanel"});
 				var len = this.items.length;
 				var n = Math.ceil(this.minItems / len);
 				for(j = 0; j < n; j++){
 					for(i = 0; i < len; i++){
-						domConstruct.create("DIV", {
+						domConstruct.create("div", {
 							className: "mblSpinWheelSlotLabel",
 							name: this.items[i][0],
 							innerHTML: this._cv ? this._cv(this.items[i][1]) : this.items[i][1]
@@ -96,18 +105,21 @@ define([
 				this.containerNode.appendChild(this.panelNodes[k]);
 			}
 			this.domNode.appendChild(this.containerNode);
-			this.touchNode = domConstruct.create("DIV", {className:"mblSpinWheelSlotTouch"}, this.domNode);
+			this.touchNode = domConstruct.create("div", {className:"mblSpinWheelSlotTouch"}, this.domNode);
 			this.setSelectable(this.domNode, false);
 		},
-	
+
 		startup: function(){
+			if(this._started){ return; }
 			this.inherited(arguments);
+			this.init();
 			this.centerPos = this.getParent().centerPos;
 			var items = this.panelNodes[1].childNodes;
 			this._itemHeight = items[0].offsetHeight;
 			this.adjust();
+			this._keydownHandle = this.connect(this.domNode, "onkeydown", "_onKeyDown"); // for desktop browsers
 		},
-	
+
 		adjust: function(){
 			// summary:
 			//		Adjusts the position of slot panels.
@@ -125,17 +137,17 @@ define([
 			this.panelNodes[1].style.top = adjustY + "px";
 			this.panelNodes[2].style.top = h + adjustY + "px";
 		},
-	
+
 		setInitialValue: function(){
 			// summary:
 			//		Sets the initial value using this.value or the first item.
 			if(this.items.length > 0){
 				var val = (this.value !== "") ? this.value : this.items[0][1];
-				this.setValue(val);
+				this.set("value", val);
 			}
 		},
-	
-		getCenterPanel: function(){
+
+		_getCenterPanel: function(){
 			// summary:
 			//		Gets a panel that contains the currently selected item.
 			var pos = this.getPos();
@@ -147,7 +159,7 @@ define([
 			}
 			return null;
 		},
-	
+
 		setColor: function(/*String*/value){
 			// summary:
 			//		Sets the color of the specified item as blue.
@@ -162,7 +174,7 @@ define([
 				}
 			}
 		},
-	
+
 		disableValues: function(/*Array*/values){
 			// summary:
 			//		Makes the specified items grayed out.
@@ -179,12 +191,12 @@ define([
 				}
 			}
 		},
-	
+
 		getCenterItem: function(){
 			// summary:
 			//		Gets the currently selected item.
 			var pos = this.getPos();
-			var centerPanel = this.getCenterPanel();
+			var centerPanel = this._getCenterPanel();
 			if(centerPanel){
 				var top = pos.y + centerPanel.offsetTop;
 				var items = centerPanel.childNodes;
@@ -195,27 +207,28 @@ define([
 				}
 			}
 			return null;
-	
+
 		},
-	
-		getValue: function(){
+
+		_getValueAttr: function(){
 			// summary:
 			//		Gets the currently selected value.
-			var item = this.getCenterItem();
-			return (item && item.innerHTML);
+			var item = this.items[this.getKey()];
+			return item && item[1];
 		},
-	
+
 		getKey: function(){
 			// summary:
 			//		Gets the key for the currently selected value.
-			return this.getCenterItem().getAttribute("name");
+			var item = this.getCenterItem();
+			return (item && item.getAttribute("name"));
 		},
-	
-		setValue: function(newValue){
+
+		_setValueAttr: function(newValue){
 			// summary:
 			//		Sets the newValue to this slot.
 			var idx0, idx1;
-			var curValue = this.getValue();
+			var curValue = this.get("value");
 			if(!curValue){
 				this._penddingValue = newValue;
 				return;
@@ -240,11 +253,18 @@ define([
 			}else{
 				m = (-d < n + d) ? -d : -(n + d);
 			}
+			this.spin(m);
+		},
+
+		spin: function(/*Number*/steps){
+			// summary:
+			//		Spins the slot as specified by steps.
 			var to = this.getPos();
-			to.y += m * this._itemHeight;
+			if(to.y % this._itemHeight){ return; } // maybe still spinning
+			to.y += steps * this._itemHeight;
 			this.slideTo(to, 1);
 		},
-	
+
 		getSpeed: function(){
 			// summary:
 			//		Overrides dojox.mobile.scrollable.getSpeed().
@@ -270,8 +290,8 @@ define([
 			}
 			return ret;
 		},
-	
-		adjustDestination: function(to, pos){
+
+		adjustDestination: function(to, pos, dim){
 			// summary:
 			//		Overrides dojox.mobile.scrollable.adjustDestination().
 			var h = this._itemHeight;
@@ -279,11 +299,12 @@ define([
 			var a = Math.abs(j);
 			var r = j >= 0 ? j % h : j % h + h;
 			to.y = j - r;
+			return true;
 		},
-	
+
 		resize: function(e){
 			if(this._penddingValue){
-				this.setValue(this._penddingValue);
+				this.set("value", this._penddingValue);
 			}
 		},
 
@@ -321,6 +342,15 @@ define([
 				duration = 0.2;
 			}
 			this.inherited(arguments, [to, duration, easing]); // 2nd arg is to avoid excessive optimization by closure compiler
+		},
+
+		_onKeyDown: function(e){
+			if(!e || e.type !== "keydown"){ return; }
+			if(e.keyCode === 40){ // down arrow key
+				this.spin(-1);
+			}else if(e.keyCode === 38){ // up arrow key
+				this.spin(1);
+			}
 		}
 	});
 });

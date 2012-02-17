@@ -21,6 +21,12 @@ define([
 		closeIcon: "mblDomButtonBlueMinus",
 		baseClass: "mblIconItemPane",
 
+		// tabIndex: String
+		//		Tabindex setting for the close button so users can hit the tab
+		//		key to focus on it.
+		tabIndex: "0",
+		_setTabIndexAttr: "closeIconNode", // sets tabIndex to closeIconNode
+
 		buildRendering: function(){
 			this.inherited(arguments);
 			this.hide();
@@ -40,10 +46,6 @@ define([
 
 		isOpen: function(e){
 			return this.domNode.style.display !== "none";
-		},
-
-		scrollIntoView: function(){
-			this.domNode.scrollIntoView();
 		},
 
 		_setLabelAttr: function(/*String*/text){

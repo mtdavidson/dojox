@@ -1,6 +1,7 @@
 define([
 	"dojo/_base/array",
 	"dojo/_base/declare",
+	"dojo/_base/lang",
 	"dojo/_base/window",
 	"dojo/dom-class",
 	"dijit/registry",
@@ -9,7 +10,7 @@ define([
 	"./TransitionEvent",
 	"./iconUtils",
 	"./sniff"
-], function(array, declare, win, domClass, registry, Contained, WidgetBase, TransitionEvent, iconUtils, has){
+], function(array, declare, lang, win, domClass, registry, Contained, WidgetBase, TransitionEvent, iconUtils, has){
 
 /*=====
 	var Contained = dijit._Contained;
@@ -137,6 +138,12 @@ define([
 		//		If true, the item is highlighted to indicate it is selected.
 		selected: false,
 
+		// tabIndex: String
+		//		Tabindex setting for the item so users can hit the tab key to
+		//		focus on it.
+		tabIndex: "0",
+		_setTabIndexAttr: "", // sets tabIndex to domNode
+
 		/* internal properties */	
 
 		// paramsToInherit: String
@@ -205,6 +212,15 @@ define([
 			return !!parent;
 		},
 
+		getTransOpts: function(){
+			var opts = this.transitionOptions || {};
+			array.forEach(["moveTo", "href", "hrefTarget", "url", "target",
+				"urlTarget", "scene", "transition", "transitionDir"], function(p){
+				opts[p] = opts[p] || this[p];
+			}, this);
+			return opts;
+		},
+
 		userClickAction: function(e){
 			// summary:
 			//		User defined click action
@@ -253,20 +269,13 @@ define([
 				this._onNewWindowOpened(e);
 				return;
 			}
-			var transOpts = this.transitionOptions || {};
-			array.forEach(["moveTo", "href", "hrefTarget", "url",
-				"urlTarget", "scene", "transition", "transitionDir"], function(p){
-				if(this[p]){
-					transOpts[p] = this[p];
-				}
-			}, this);
-
+			var opts = this.getTransOpts();
 			var doTransition = 
-				!!(transOpts.moveTo || transOpts.href || transOpts.url || transOpts.scene);
-			if(this._prepareForTransition(e, doTransition ? transOpts : null) === false){ return; }
+				!!(opts.moveTo || opts.href || opts.url || opts.target || opts.scene);
+			if(this._prepareForTransition(e, doTransition ? opts : null) === false){ return; }
 			if(doTransition){
 				this.setTransitionPos(e);
-				new TransitionEvent(this.domNode, transOpts, e).dispatch();
+				new TransitionEvent(this.domNode, opts, e).dispatch();
 			}
 		},
 
@@ -279,6 +288,7 @@ define([
 		},
 
 		_onTouchStart: function(e){
+			if(this.onTouchStart(e) === false){ return; } // user's touchStart action
 			if(!this._onTouchEndHandle && this._selStartMethod === "touch"){
 				// Connect to the entire window. Otherwise, fail to receive
 				// events if operation is performed outside this widget.
@@ -286,26 +296,42 @@ define([
 				this._onTouchMoveHandle = this.connect(win.body(), has('touch') ? "ontouchmove" : "onmousemove", "_onTouchMove");
 				this._onTouchEndHandle = this.connect(win.body(), has('touch') ? "ontouchend" : "onmouseup", "_onTouchEnd");
 			}
+			this.touchStartX = e.touches ? e.touches[0].pageX : e.clientX;
 			this.touchStartY = e.touches ? e.touches[0].pageY : e.clientY;
 			this._currentSel = this.selected;
 
 			if(this._delayedSelection){
 				// so as not to make selection when the user flicks on ScrollableView
-				this._selTimer = setTimeout(dojo.hitch(this, function(){ this.set("selected", true); }), 100);
+				this._selTimer = setTimeout(lang.hitch(this, function(){ this.set("selected", true); }), 100);
 			}else{
 				this.set("selected", true);
 			}
 		},
 
+		onTouchStart: function(/*Event*/ /*===== e =====*/){
+			// summary:
+			//		User defined function to handle touchStart
+			// tags:
+			//		callback
+		},
+
 		_onTouchMove: function(e){
+			var x = e.touches ? e.touches[0].pageX : e.clientX;
 			var y = e.touches ? e.touches[0].pageY : e.clientY;
-			if(Math.abs(y - this.touchStartY) >= 4){ // dojox.mobile.scrollable#threshold
+			if(Math.abs(x - this.touchStartX) >= 4 ||
+			   Math.abs(y - this.touchStartY) >= 4){ // dojox.mobile.scrollable#threshold
 				if(this._selTimer){
 					clearTimeout(this._selTimer);
 					this._selTimer = null;
 				}
 				this._disconnect();
-				this.set("selected", false);
+
+				var p = this.getParent();
+				if(p && p.selectOne){
+					this._prevSel.set("selected", true);
+				}else{
+					this.set("selected", false);
+				}
 			}
 		},
 
@@ -350,7 +376,7 @@ define([
 			//		Given a transition destination, this method performs a view
 			//		transition. This method is typically called when this item
 			//		is clicked.
-			var opts = (typeof(moveTo) === "object") ? moveTo :
+			var opts = (moveTo && typeof(moveTo) === "object") ? moveTo :
 				{moveTo: moveTo, href: href, url: url, scene: scene,
 				 transition: this.transition, transitionDir: this.transitionDir};
 			new TransitionEvent(this.domNode, opts).dispatch();
@@ -359,7 +385,7 @@ define([
 		_setIconAttr: function(icon){
 			if(!this._isOnLine){ return; } // icon may be invalid because inheritParams is not called yet
 			this._set("icon", icon);
-			this.iconNode = iconUtils.setIcon(icon, this.iconPos, this.iconNode, this.alt, this.iconParentNode);
+			this.iconNode = iconUtils.setIcon(icon, this.iconPos, this.iconNode, this.alt, this.iconParentNode, this.refNode, this.position);
 		},
 
 		_setLabelAttr: function(/*String*/text){

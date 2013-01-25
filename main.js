@@ -1,10 +1,8 @@
-define([
-	"dojo/_base/kernel"
-], function(dojo){
+define(["dojo/_base/kernel"], function(dojo) {
 	// module:
-	//		dijit
+	//		dojox/main
 	// summary:
-	//		The dijit package main module
+	//		The dojox package main module; dojox package is somewhat unusual in that the main module currently just provides an empty object.
 
-	return dojo.dijit;
+	return dojo.dojox;
 });
